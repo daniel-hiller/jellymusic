@@ -6,6 +6,9 @@ All notable changes to JellyMusic, newest first. This project follows
 ## Unreleased
 
 **Added**
+- Richer artist page: an "Appears on" section (guest spots / compilations,
+  separate from the artist's own albums) and the artist biography.
+- Recently played *tracks* shelf on the home screen.
 - Standalone queue screen, reachable from the mini player (no longer buried in
   Now Playing) — reorder, remove and tap-to-jump.
 - Desktop system tray with transport controls (play/pause, previous/next, show
