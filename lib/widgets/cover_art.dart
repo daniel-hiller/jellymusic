@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../core/theme/jelly_colors.dart';
+import 'brand_mark.dart';
 
 /// Square cover art with rounded corners, cache, and a graceful fallback
 /// (a music-note placeholder) when there's no image or it fails to load.
@@ -67,10 +68,11 @@ class _Placeholder extends StatelessWidget {
               (constraints.biggest.shortestSide.isFinite
                   ? constraints.biggest.shortestSide
                   : 48);
+          // Our own mark (monochrome, subdued) instead of a generic note.
           return Center(
-            child: Icon(
-              Icons.music_note_rounded,
-              size: extent * 0.4,
+            child: BrandMark(
+              size: extent * 0.5,
+              gradient: false,
               color: context.colors.textTertiary,
             ),
           );

@@ -53,6 +53,8 @@ class HomeScreen extends ConsumerWidget {
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed: () => _refresh(ref),
                 ),
+                // Keep the action clear of the desktop scrollbar.
+                const SizedBox(width: 8),
               ],
             ),
             for (final s in _shelves)
