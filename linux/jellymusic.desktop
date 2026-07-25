@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=JellyMusic
+Comment=A modern, music-first Jellyfin client
+# Icon name for installed builds: install icon.png into the hicolor theme as
+# com.jellymusic.app.png (e.g. ~/.local/share/icons/hicolor/512x512/apps/).
+Icon=com.jellymusic.app
+Exec=jellymusic
+Categories=AudioVideo;Audio;Player;
+# Must match APPLICATION_ID (g_set_prgname) so Wayland/GNOME maps the running
+# window to this entry and shows its icon in the dash.
+StartupWMClass=com.jellymusic.app
+Terminal=false

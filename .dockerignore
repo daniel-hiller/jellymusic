@@ -1,0 +1,17 @@
+# Keep the build context small and free of host-specific build output —
+# but the runtime image copies the pre-built web bundle, so keep that.
+build/
+!build/web
+!build/web/**
+.dart_tool/
+.git/
+.github/
+.idea/
+.vscode/
+android/
+ios/
+linux/
+macos/
+windows/
+*.iml
+.flutter-plugins-dependencies

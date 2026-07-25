@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Jellymusic">
+  <defs>
+    <linearGradient id="jm" gradientUnits="userSpaceOnUse" x1="52" y1="456" x2="460" y2="56">
+      <stop offset="0" stop-color="#AA5CC3"/>
+      <stop offset="1" stop-color="#00A4DC"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#jm)">
+    <rect x="52" y="176" width="56" height="160" rx="28"/>
+    <rect x="140" y="120" width="56" height="272" rx="28"/>
+    <rect x="228" y="56" width="56" height="400" rx="28"/>
+    <rect x="316" y="136" width="56" height="240" rx="28"/>
+    <rect x="404" y="188" width="56" height="136" rx="28"/>
+  </g>
+</svg>

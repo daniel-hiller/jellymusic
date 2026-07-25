@@ -1,0 +1,23 @@
+# Runs the pre-built web image from GitHub Container Registry — no local build.
+# The app connects to whichever Jellyfin server the user logs into, so there is
+# nothing to configure here beyond the published port.
+#
+#   docker compose pull   # grab the latest image
+#   docker compose up -d   # serve on http://localhost:8080
+services:
+  jellymusic:
+    image: ghcr.io/daniel-hiller/jellymusic:latest
+    container_name: jellymusic
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    # nginx:alpine ships busybox wget; --spider does a HEAD-style check on the
+    # served index without downloading it. Use 127.0.0.1, not localhost:
+    # inside the container localhost resolves to ::1 (IPv6) first, but nginx
+    # only listens on IPv4, so localhost would be refused.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

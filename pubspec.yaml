@@ -1,0 +1,95 @@
+name: jellymusic
+description: "A modern, music-first Jellyfin client built with Flutter."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Jellyfin API ---
+  dart_jellyfin: ^0.1.0
+
+  # --- State management ---
+  flutter_riverpod: ^3.3.2
+
+  # --- Navigation ---
+  go_router: ^17.3.0
+
+  # --- Audio playback ---
+  just_audio: ^0.10.6            # core player (iOS/Android/macOS/web)
+  just_audio_media_kit: ^2.0.6   # libmpv backend -> adds Linux + Windows
+  media_kit_libs_audio: ^1.0.5   # native audio libs for the desktop backend
+  audio_service: ^0.18.15        # background playback + OS media controls
+  audio_session: ^0.2.4
+
+  # --- Artwork & images ---
+  cached_network_image: ^3.4.1
+  # Cover accent colours come from lib/core/util/dominant_color.dart —
+  # palette_generator decoded full-size art and quantised on the UI isolate.
+
+  # --- Persistence ---
+  flutter_secure_storage: ^10.3.1 # server url + access token
+  shared_preferences: ^2.3.3     # non-secret settings
+
+  # --- Misc ---
+  uuid: ^4.5.1                   # stable per-install deviceId
+  collection: ^1.19.0
+  dio_cache_interceptor: ^4.0.0
+  path_provider: ^2.1.6
+  dio: ^5.10.0
+  intl: 0.20.2
+  flutter_localizations:
+    sdk: flutter
+  google_fonts: ^8.2.0
+  flutter_svg: ^2.0.10+1        # crisp brand mark in the app chrome
+  url_launcher: ^6.3.1          # open the GitHub repo / release pages
+  http_cache_hive_store: ^5.1.1
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  # App-icon generation. `image` is used by tool/gen_icons.dart to composite
+  # the transparent brand mark onto the Nocturne background.
+  flutter_launcher_icons: ^0.14.4
+  image: ^4.3.0
+
+# Generates the per-platform launcher icons from the composed sources.
+# Regenerate after changing the art: `dart run tool/gen_icons.dart` then
+# `dart run flutter_launcher_icons`.
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  ios: true
+  # iOS forbids alpha; flatten onto the Nocturne background instead.
+  remove_alpha_ios: true
+  background_color_ios: "#161826"
+  # Adaptive icon: flat Nocturne background, bars as the (padded) foreground,
+  # plus a monochrome layer for Android 13+ themed icons.
+  adaptive_icon_background: "#161826"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  adaptive_icon_monochrome: "assets/icon/monochrome.png"
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#161826"
+    theme_color: "#161826"
+  windows:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icon/icon.png"
+
+flutter:
+  uses-material-design: true
+  generate: true # enable gen-l10n localization codegen
+  assets:
+    - assets/logo/
+    # Bundled so the Linux GTK runner can set it as the window icon
+    # (flutter_launcher_icons doesn't support Linux). Transparent so it sits in
+    # the dock like the other icons, not as a dark tile.
+    - assets/icon/brand-1024.png
