@@ -173,3 +173,7 @@ lib/
 ├── features/                 # UI per feature: auth, home, library, search, player, settings, shell
 └── widgets/                  # reusable: CoverArt, AlbumCard, AlbumShelf, SongTile, BrandMark, SwipeBack, skeletons
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
