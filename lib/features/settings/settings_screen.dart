@@ -327,7 +327,7 @@ class _AppearanceTab extends ConsumerWidget {
 class _AboutTab extends ConsumerWidget {
   const _AboutTab();
 
-  Future<void> _open(String url) =>
+  static Future<void> _open(String url) =>
       launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 
   @override
@@ -336,68 +336,226 @@ class _AboutTab extends ConsumerWidget {
     final update = ref.watch(updateProvider);
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
       children: [
-        const Center(child: BrandMark(size: 84)),
-        const SizedBox(height: 16),
-        const Center(
-          child: Text('JellyMusic',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        ),
-        const SizedBox(height: 6),
-        Center(
-          child: Text(
-            l.aboutTagline,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.colors.textSecondary),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Center(
-          child: Text(
-            '${l.aboutVersionLabel} ${AppInfo.version}',
-            style: TextStyle(color: context.colors.textTertiary, fontSize: 13),
-          ),
-        ),
-        const SizedBox(height: 24),
+        const _AboutHero(),
+        const SizedBox(height: 20),
 
         // Update status — only where update checks make sense (not iOS/web).
         if (AppInfo.supportsUpdateCheck)
           update.when(
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
-            data: (info) => info == null
-                ? ListTile(
-                    leading: Icon(Icons.check_circle_outline_rounded,
-                        color: context.colors.accent),
-                    title: Text(l.updateUpToDate),
-                  )
-                : ListTile(
-                    leading: Icon(Icons.system_update_rounded,
-                        color: context.colors.accent),
-                    title: Text(l.updateAvailable(info.version)),
-                    trailing: FilledButton(
-                      onPressed: () => _open(info.url),
-                      child: Text(l.updateDownload),
+            data: (info) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: info == null
+                  ? _AboutStatusCard(
+                      icon: Icons.check_circle_rounded,
+                      label: l.updateUpToDate,
+                    )
+                  : _AboutStatusCard(
+                      icon: Icons.system_update_rounded,
+                      label: l.updateAvailable(info.version),
+                      action: FilledButton(
+                        onPressed: () => _open(info.url),
+                        child: Text(l.updateDownload),
+                      ),
+                      onTap: () => _open(info.url),
                     ),
-                    onTap: () => _open(info.url),
-                  ),
+            ),
           ),
 
-        ListTile(
-          leading: const Icon(Icons.code_rounded),
-          title: Text(l.aboutGithub),
-          trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-          onTap: () => _open(AppInfo.repoUrl),
+        // Grouped external links.
+        _AboutLinkGroup(
+          rows: [
+            _AboutLink(
+              icon: Icons.code_rounded,
+              label: l.aboutGithub,
+              onTap: () => _open(AppInfo.repoUrl),
+            ),
+            _AboutLink(
+              icon: Icons.auto_awesome_rounded,
+              label: l.aboutWhatsNew,
+              onTap: () => _open(AppInfo.releasesUrl),
+            ),
+            _AboutLink(
+              icon: Icons.bug_report_rounded,
+              label: l.aboutReportIssue,
+              onTap: () => _open(AppInfo.issuesUrl),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 24),
+
         Center(
           child: Text(
-            l.aboutCopyright(AppInfo.author),
+            '${l.aboutBuiltWith}  ·  ${l.aboutCopyright(AppInfo.author)}',
             style: TextStyle(color: context.colors.textTertiary, fontSize: 12),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The About header: a soft accent-gradient panel with the brand mark, name,
+/// tagline and a version pill.
+class _AboutHero extends StatelessWidget {
+  const _AboutHero();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.ring),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            c.accent.withValues(alpha: 0.20),
+            c.accentAlt.withValues(alpha: 0.08),
+            c.surfaceHigh.withValues(alpha: 0.0),
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          const BrandMark(size: 72),
+          const SizedBox(height: 16),
+          const Text('JellyMusic',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(
+            AppLocalizations.of(context).aboutTagline,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              AppInfo.version,
+              style: TextStyle(
+                color: c.accentBright,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single-line status card (update state) with an optional trailing action.
+class _AboutStatusCard extends StatelessWidget {
+  const _AboutStatusCard({
+    required this.icon,
+    required this.label,
+    this.action,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Widget? action;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: c.surfaceHigh,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, color: c.accent),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              if (action != null) action!,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A rounded card grouping several [_AboutLink] rows with hairline dividers.
+class _AboutLinkGroup extends StatelessWidget {
+  const _AboutLinkGroup({required this.rows});
+
+  final List<_AboutLink> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surfaceHigh,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: c.ring),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AboutLink extends StatelessWidget {
+  const _AboutLink({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: c.textSecondary),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(label,
+                  style: const TextStyle(fontWeight: FontWeight.w500)),
+            ),
+            Icon(Icons.open_in_new_rounded, size: 18, color: c.textTertiary),
+          ],
+        ),
+      ),
     );
   }
 }

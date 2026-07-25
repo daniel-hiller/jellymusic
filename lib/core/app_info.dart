@@ -12,6 +12,7 @@ abstract final class AppInfo {
   static const String author = 'Daniel Hiller';
   static const String repoUrl = 'https://github.com/daniel-hiller/jellymusic';
   static const String releasesUrl = '$repoUrl/releases';
+  static const String issuesUrl = '$repoUrl/issues';
   static const String latestReleaseApi =
       'https://api.github.com/repos/daniel-hiller/jellymusic/releases/latest';
 
