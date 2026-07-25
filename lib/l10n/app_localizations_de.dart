@@ -534,6 +534,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sortTitle => 'Titel';
 
   @override
+  String get shelfRecentlyPlayedTracks => 'Zuletzt gespielte Titel';
+
+  @override
+  String get artistAppearsOn => 'Erscheint auf';
+
+  @override
+  String get artistAbout => 'Über den Künstler';
+
+  @override
+  String get commonShowMore => 'Mehr anzeigen';
+
+  @override
+  String get commonShowLess => 'Weniger anzeigen';
+
+  @override
   String aboutCopyright(Object author) {
     return '© $author';
   }

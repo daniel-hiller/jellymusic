@@ -46,6 +46,18 @@ class MusicRepository {
     return res.items;
   }
 
+  /// Recently played individual tracks (not grouped into albums).
+  Future<List<JellyfinItem>> recentlyPlayedTracks({int limit = 20}) async {
+    final res = await _c.items.list(
+      includeItemTypes: const [JellyfinItemKind.audio],
+      sortBy: const ['DatePlayed'],
+      descending: true,
+      filters: const ['IsPlayed'],
+      limit: limit,
+    );
+    return res.items;
+  }
+
   /// Most-played albums.
   Future<List<JellyfinItem>> mostPlayedAlbums({int limit = 20}) async {
     final res = await _c.items.list(
@@ -360,16 +372,38 @@ class MusicRepository {
     return res.items;
   }
 
-  /// The albums belonging to an artist.
-  Future<List<JellyfinItem>> artistAlbums(String artistId) async {
-    final res = await _c.items.list(
-      includeItemTypes: const [JellyfinItemKind.musicAlbum],
-      artistIds: artistId,
-      sortBy: const ['PremiereDate', 'SortName'],
-      descending: true,
-      limit: 200,
+  /// The artist's own albums (where they're the album artist).
+  Future<List<JellyfinItem>> artistAlbums(String artistId) =>
+      _artistAlbumsBy('albumArtistIds', artistId);
+
+  /// Albums the artist only *appears on* (guest spots, compilations) — i.e.
+  /// they contributed tracks but aren't the album artist.
+  Future<List<JellyfinItem>> artistAppearsOn(String artistId) =>
+      _artistAlbumsBy('contributingArtistIds', artistId);
+
+  /// Shared album query keyed by a Jellyfin artist filter param. The SDK's
+  /// `list()` only exposes `artistIds`, so the album-artist / contributing
+  /// split goes through the raw endpoint.
+  Future<List<JellyfinItem>> _artistAlbumsBy(
+      String artistParam, String artistId) async {
+    final res = await _c.request<Map<String, dynamic>>(
+      '/Items',
+      queryParameters: {
+        'userId': _c.userId,
+        'recursive': true,
+        'enableImages': true,
+        'enableUserData': true,
+        'includeItemTypes': JellyfinItemKind.musicAlbum,
+        artistParam: artistId,
+        'sortBy': 'PremiereDate,SortName',
+        'sortOrder': 'Descending',
+        'limit': 200,
+        'fields': JellyfinItemsApi.musicFields.join(','),
+      },
     );
-    return res.items;
+    return JellyfinQueryResult.fromJson(
+            res.data ?? const {}, JellyfinItem.fromJson)
+        .items;
   }
 
   /// Favourite tracks.

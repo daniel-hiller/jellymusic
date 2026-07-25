@@ -24,6 +24,7 @@ class ArtistDetailScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final artist = ref.watch(artistByIdProvider(artistId)).value;
     final albums = ref.watch(artistAlbumsProvider(artistId));
+    final appearsOn = ref.watch(artistAppearsOnProvider(artistId));
     final top = ref.watch(artistTopTracksProvider(artistId));
     final controller = ref.watch(playerControllerProvider);
     final service = ref.watch(jellyfinServiceProvider);
@@ -34,6 +35,7 @@ class ArtistDetailScreen extends ConsumerWidget {
         artist != null ? service.primaryImageUrl(artist, size: 480) : null;
     final meta = artist?.genres.take(3).join(' · ') ?? '';
     final topTracks = top.value ?? const [];
+    final overview = artist?.overview ?? '';
 
     return Scaffold(
       body: CustomScrollView(
@@ -120,6 +122,32 @@ class ArtistDetailScreen extends ConsumerWidget {
               ),
             ),
           ),
+          // Albums the artist only appears on (guest spots, compilations).
+          ...appearsOn.maybeWhen(
+            data: (items) => items.isEmpty
+                ? const <Widget>[]
+                : [
+                    _SectionHeader(l.artistAppearsOn),
+                    SliverToBoxAdapter(
+                      child: AlbumShelf(
+                        items: items,
+                        horizontalPadding: 14,
+                        onOpen: (item) =>
+                            context.go('/library/album/${item.id}'),
+                      ),
+                    ),
+                  ],
+            orElse: () => const <Widget>[],
+          ),
+          if (overview.isNotEmpty) ...[
+            _SectionHeader(l.artistAbout),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
+                child: _ExpandableText(overview),
+              ),
+            ),
+          ],
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -145,6 +173,54 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Artist biography, clamped to a few lines with a Show more / less toggle.
+class _ExpandableText extends StatefulWidget {
+  const _ExpandableText(this.text);
+  final String text;
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.topCenter,
+          child: Text(
+            widget.text,
+            maxLines: _expanded ? null : 4,
+            overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            style: TextStyle(
+              height: 1.45,
+              color: context.colors.textSecondary,
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => setState(() => _expanded = !_expanded),
+            child: Text(_expanded ? l.commonShowLess : l.commonShowMore),
+          ),
+        ),
+      ],
     );
   }
 }

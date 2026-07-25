@@ -533,6 +533,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortTitle => 'Title';
 
   @override
+  String get shelfRecentlyPlayedTracks => 'Recently played tracks';
+
+  @override
+  String get artistAppearsOn => 'Appears on';
+
+  @override
+  String get artistAbout => 'About';
+
+  @override
+  String get commonShowMore => 'Show more';
+
+  @override
+  String get commonShowLess => 'Show less';
+
+  @override
   String aboutCopyright(Object author) {
     return '© $author';
   }

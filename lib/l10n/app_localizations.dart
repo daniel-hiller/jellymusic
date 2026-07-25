@@ -1082,6 +1082,36 @@ abstract class AppLocalizations {
   /// **'Titel'**
   String get sortTitle;
 
+  /// No description provided for @shelfRecentlyPlayedTracks.
+  ///
+  /// In de, this message translates to:
+  /// **'Zuletzt gespielte Titel'**
+  String get shelfRecentlyPlayedTracks;
+
+  /// No description provided for @artistAppearsOn.
+  ///
+  /// In de, this message translates to:
+  /// **'Erscheint auf'**
+  String get artistAppearsOn;
+
+  /// No description provided for @artistAbout.
+  ///
+  /// In de, this message translates to:
+  /// **'Über den Künstler'**
+  String get artistAbout;
+
+  /// No description provided for @commonShowMore.
+  ///
+  /// In de, this message translates to:
+  /// **'Mehr anzeigen'**
+  String get commonShowMore;
+
+  /// No description provided for @commonShowLess.
+  ///
+  /// In de, this message translates to:
+  /// **'Weniger anzeigen'**
+  String get commonShowLess;
+
   /// No description provided for @aboutCopyright.
   ///
   /// In de, this message translates to:

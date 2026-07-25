@@ -132,6 +132,12 @@ final recentlyPlayedProvider = FutureProvider<List<JellyfinItem>>((ref) {
   return ref.watch(musicRepositoryProvider).recentlyPlayedAlbums();
 });
 
+final recentlyPlayedTracksProvider =
+    FutureProvider<List<JellyfinItem>>((ref) {
+  ref.watch(_sessionUserId);
+  return ref.watch(musicRepositoryProvider).recentlyPlayedTracks();
+});
+
 final mostPlayedProvider = FutureProvider<List<JellyfinItem>>((ref) {
   ref.watch(_sessionUserId);
   return ref.watch(musicRepositoryProvider).mostPlayedAlbums();
@@ -252,6 +258,20 @@ final albumDetailProvider =
 final artistAlbumsProvider =
     FutureProvider.family<List<JellyfinItem>, String>((ref, artistId) {
   return ref.watch(musicRepositoryProvider).artistAlbums(artistId);
+});
+
+/// Albums the artist only appears on, with their own albums removed so the two
+/// sections never repeat the same record.
+final artistAppearsOnProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, artistId) async {
+  final repo = ref.watch(musicRepositoryProvider);
+  final own = await ref.watch(artistAlbumsProvider(artistId).future);
+  final appears = await repo.artistAppearsOn(artistId);
+  final ownIds = {for (final a in own) a.id};
+  return [
+    for (final a in appears)
+      if (!ownIds.contains(a.id)) a,
+  ];
 });
 
 final artistTopTracksProvider =

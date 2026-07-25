@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/jelly_colors.dart';
+import '../../core/util/item_x.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
 import '../../widgets/album_shelf.dart';
+import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
 
 /// Landing screen: a greeting plus horizontally-scrolling shelves that mirror
@@ -31,6 +35,7 @@ class HomeScreen extends ConsumerWidget {
     for (final s in _shelves) {
       ref.invalidate(s.provider);
     }
+    ref.invalidate(recentlyPlayedTracksProvider);
   }
 
   @override
@@ -61,6 +66,7 @@ class HomeScreen extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: _Shelf(title: s.title(l), provider: s.provider),
               ),
+            const SliverToBoxAdapter(child: _RecentTracksShelf()),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
         ),
@@ -119,6 +125,93 @@ class _Shelf extends ConsumerWidget {
         ),
         shelf,
       ],
+    );
+  }
+}
+
+/// A horizontal shelf of recently played *tracks* (unlike the album shelves).
+/// Tapping a card plays from that point through the rest of the row.
+class _RecentTracksShelf extends ConsumerWidget {
+  const _RecentTracksShelf();
+
+  static const _cardWidth = 128.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final async = ref.watch(recentlyPlayedTracksProvider);
+    return async.maybeWhen(
+      data: (tracks) {
+        if (tracks.isEmpty) return const SizedBox.shrink();
+        final controller = ref.watch(playerControllerProvider);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+              child: Text(l.shelfRecentlyPlayedTracks,
+                  style: Theme.of(context).textTheme.titleLarge),
+            ),
+            SizedBox(
+              height: _cardWidth + 52,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: tracks.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, i) => _TrackCard(
+                  track: tracks[i],
+                  width: _cardWidth,
+                  onTap: () => controller.playItems(tracks, index: i),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _TrackCard extends ConsumerWidget {
+  const _TrackCard(
+      {required this.track, required this.width, required this.onTap});
+
+  final JellyfinItem track;
+  final double width;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final url =
+        ref.watch(jellyfinServiceProvider).primaryImageUrl(track, size: 256);
+    return SizedBox(
+      width: width,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CoverArt(url: url, size: width, borderRadius: 8),
+            const SizedBox(height: 6),
+            Text(
+              track.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+            Text(
+              track.trackArtistLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: context.colors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
