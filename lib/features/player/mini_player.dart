@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/desktop/desktop_tray.dart' show isDesktop;
 import '../../core/theme/jelly_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/cast_providers.dart';
@@ -138,7 +137,7 @@ class MiniPlayer extends ConsumerWidget {
                             ),
                             const CastButton(showLabel: true),
                             const VolumeControl(width: 110),
-                            if (isDesktop)
+                            if (miniWindowSupported)
                               IconButton(
                                 tooltip: l.miniPlayerCompact,
                                 icon: const Icon(

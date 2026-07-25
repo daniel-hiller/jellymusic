@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +10,24 @@ import '../../core/theme/jelly_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 import '../../widgets/cover_art.dart';
+
+/// Whether the shrink-to-mini window trick is usable here. Wayland (COSMIC in
+/// particular) doesn't let a client resize/position or pin its own top-level
+/// window — the compositor is authoritative — so the mini player is limited to
+/// X11, Windows and macOS. An app forced onto XWayland (`GDK_BACKEND=x11`)
+/// counts as X11.
+bool get miniWindowSupported {
+  if (kIsWeb) return false;
+  if (Platform.isWindows || Platform.isMacOS) return true;
+  if (Platform.isLinux) {
+    final env = Platform.environment;
+    if (env['GDK_BACKEND'] == 'x11') return true;
+    final wayland = env['XDG_SESSION_TYPE'] == 'wayland' ||
+        (env['WAYLAND_DISPLAY']?.isNotEmpty ?? false);
+    return !wayland;
+  }
+  return false;
+}
 
 /// Spotify-style "mini player": shrinks the (single) desktop window into a
 /// small, always-on-top compact bar. Flutter desktop is single-window, so the
