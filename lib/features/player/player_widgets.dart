@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -355,18 +356,28 @@ class VolumeControl extends ConsumerWidget {
       ),
     );
 
-    return Row(
-      mainAxisSize: width == null ? MainAxisSize.max : MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: volume <= 0 ? 'Ton an' : 'Stumm',
-          icon: Icon(icon, color: context.colors.textSecondary),
-          onPressed: controller.toggleMute,
-        ),
-        width == null
-            ? Expanded(child: slider)
-            : SizedBox(width: width, child: slider),
-      ],
+    return Listener(
+      // Mouse wheel over the control nudges the volume (up = louder).
+      onPointerSignal: (signal) {
+        if (signal is PointerScrollEvent) {
+          const step = 0.05;
+          final delta = signal.scrollDelta.dy < 0 ? step : -step;
+          controller.setVolume((volume + delta).clamp(0.0, 1.0));
+        }
+      },
+      child: Row(
+        mainAxisSize: width == null ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: volume <= 0 ? 'Ton an' : 'Stumm',
+            icon: Icon(icon, color: context.colors.textSecondary),
+            onPressed: controller.toggleMute,
+          ),
+          width == null
+              ? Expanded(child: slider)
+              : SizedBox(width: width, child: slider),
+        ],
+      ),
     );
   }
 }
