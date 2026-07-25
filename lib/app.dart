@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/desktop/desktop_tray.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/settings_providers.dart';
@@ -31,6 +32,9 @@ class JellyMusicApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
+      // Under Localizations so the tray menu can be localised; a no-op on
+      // mobile/web.
+      builder: (context, child) => DesktopTray(child: child!),
     );
   }
 }

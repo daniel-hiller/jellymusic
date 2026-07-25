@@ -48,6 +48,8 @@ dependencies:
   flutter_svg: ^2.0.10+1        # crisp brand mark in the app chrome
   url_launcher: ^6.3.1          # open the GitHub repo / release pages
   http_cache_hive_store: ^5.1.1
+  tray_manager: ^0.5.3
+  window_manager: ^0.5.2
 
 dev_dependencies:
   flutter_lints: ^6.0.0
@@ -55,6 +57,7 @@ dev_dependencies:
   # the transparent brand mark onto the Nocturne background.
   flutter_launcher_icons: ^0.14.4
   image: ^4.3.0
+  flutter_native_splash: ^2.4.8
 
 # Generates the per-platform launcher icons from the composed sources.
 # Regenerate after changing the art: `dart run tool/gen_icons.dart` then
@@ -83,6 +86,18 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "assets/icon/icon.png"
+
+# Native launch screen (shown before Flutter boots). Nocturne background with
+# the transparent brand mark centred. Regenerate after changing the art:
+# `dart run flutter_native_splash:create`. Web is served fresh from the
+# container, so it keeps its own loader.
+flutter_native_splash:
+  color: "#161826"
+  image: assets/icon/brand-1024.png
+  android_12:
+    color: "#161826"
+    image: assets/icon/foreground.png
+  web: false
 
 flutter:
   uses-material-design: true

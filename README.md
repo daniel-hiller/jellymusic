@@ -59,8 +59,9 @@ German/English localization.
   `sdk: >=3.5.0`).
 - A reachable Jellyfin server (a recent 10.x).
 - Linux desktop deps:
-  `sudo apt install libmpv-dev mpv libsecret-1-dev` — libmpv for audio,
-  libsecret for secure token storage. External links open via `xdg-open`
+  `sudo apt install libmpv-dev mpv libsecret-1-dev libayatana-appindicator3-dev`
+  — libmpv for audio, libsecret for secure token storage, appindicator for the
+  system-tray icon. External links open via `xdg-open`
   (`xdg-utils`).
 
 ## First run

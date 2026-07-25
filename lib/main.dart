@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
+import 'core/desktop/desktop_tray.dart';
 import 'core/audio/audio_player_handler.dart';
 import 'data/cache/http_cache.dart';
 import 'data/jellyfin/auth_repository.dart';
@@ -17,6 +19,11 @@ import 'providers/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Desktop windowing (needed by the system tray to show/focus the window).
+  if (isDesktop) {
+    await windowManager.ensureInitialized();
+  }
 
   // On Linux/Windows (and optionally macOS) just_audio has no native
   // backend — this routes playback through libmpv so desktop works too.
