@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../features/settings/settings_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 
@@ -27,7 +28,8 @@ class DesktopTray extends ConsumerStatefulWidget {
   ConsumerState<DesktopTray> createState() => _DesktopTrayState();
 }
 
-class _DesktopTrayState extends ConsumerState<DesktopTray> with TrayListener {
+class _DesktopTrayState extends ConsumerState<DesktopTray>
+    with TrayListener, WindowListener {
   // Transparent brand mark; the tray panel supplies its own background.
   static const _iconPath = 'assets/icon/brand-1024.png';
 
@@ -38,13 +40,17 @@ class _DesktopTrayState extends ConsumerState<DesktopTray> with TrayListener {
     super.initState();
     if (isDesktop) {
       trayManager.addListener(this);
+      windowManager.addListener(this);
       _init();
     }
   }
 
   @override
   void dispose() {
-    if (isDesktop) trayManager.removeListener(this);
+    if (isDesktop) {
+      trayManager.removeListener(this);
+      windowManager.removeListener(this);
+    }
     super.dispose();
   }
 
@@ -120,6 +126,25 @@ class _DesktopTrayState extends ConsumerState<DesktopTray> with TrayListener {
     }
   }
 
+  // ── WindowListener ────────────────────────────────────────────────
+  @override
+  void onWindowClose() {
+    // Only fires while preventClose is set (i.e. close-to-tray is on): hide to
+    // the tray instead of quitting.
+    if (ref.read(closeToTrayProvider).value ?? false) {
+      windowManager.hide();
+    } else {
+      windowManager.destroy();
+    }
+  }
+
+  @override
+  void onWindowMinimize() {
+    if (ref.read(minimizeToTrayProvider).value ?? false) {
+      windowManager.hide();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isDesktop) {
@@ -127,6 +152,9 @@ class _DesktopTrayState extends ConsumerState<DesktopTray> with TrayListener {
       ref.watch(isPlayingProvider);
       ref.watch(currentMediaItemProvider);
       AppLocalizations.of(context); // re-run on locale change
+      // Intercept the window close button only when close-to-tray is on.
+      final closeToTray = ref.watch(closeToTrayProvider).value ?? false;
+      windowManager.setPreventClose(closeToTray);
       if (_ready) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _syncMenu());
       }

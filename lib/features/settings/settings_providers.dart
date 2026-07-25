@@ -112,6 +112,47 @@ class SidebarCollapsedController extends AsyncNotifier<bool> {
   }
 }
 
+/// Desktop tray behaviour: hide to tray instead of quitting on window close,
+/// and/or hide to tray on minimise. Two independent, persisted toggles.
+const _kCloseToTray = 'settings.closeToTray';
+const _kMinimizeToTray = 'settings.minimizeToTray';
+
+final closeToTrayProvider =
+    AsyncNotifierProvider<CloseToTrayController, bool>(
+        CloseToTrayController.new);
+
+class CloseToTrayController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kCloseToTray) ?? false;
+  }
+
+  Future<void> set(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kCloseToTray, enabled);
+  }
+}
+
+final minimizeToTrayProvider =
+    AsyncNotifierProvider<MinimizeToTrayController, bool>(
+        MinimizeToTrayController.new);
+
+class MinimizeToTrayController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kMinimizeToTray) ?? false;
+  }
+
+  Future<void> set(bool enabled) async {
+    state = AsyncData(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kMinimizeToTray, enabled);
+  }
+}
+
 /// Fade length in seconds (0 = off). Applies to the running player at once.
 final fadeSecondsProvider =
     AsyncNotifierProvider<FadeController, int>(FadeController.new);

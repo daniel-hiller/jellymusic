@@ -1088,6 +1088,36 @@ abstract class AppLocalizations {
   /// **'Zuletzt gespielte Titel'**
   String get shelfRecentlyPlayedTracks;
 
+  /// No description provided for @settingsDesktop.
+  ///
+  /// In de, this message translates to:
+  /// **'Desktop'**
+  String get settingsDesktop;
+
+  /// No description provided for @settingsCloseToTray.
+  ///
+  /// In de, this message translates to:
+  /// **'In den Tray schließen'**
+  String get settingsCloseToTray;
+
+  /// No description provided for @settingsCloseToTraySubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'JellyMusic beim Schließen des Fensters im Tray weiterlaufen lassen'**
+  String get settingsCloseToTraySubtitle;
+
+  /// No description provided for @settingsMinimizeToTray.
+  ///
+  /// In de, this message translates to:
+  /// **'In den Tray minimieren'**
+  String get settingsMinimizeToTray;
+
+  /// No description provided for @settingsMinimizeToTraySubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Beim Minimieren des Fensters in den Tray verbergen'**
+  String get settingsMinimizeToTraySubtitle;
+
   /// No description provided for @artistAppearsOn.
   ///
   /// In de, this message translates to:

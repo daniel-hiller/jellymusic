@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_info.dart';
+import '../../core/desktop/desktop_tray.dart' show isDesktop;
 import '../../core/theme/jelly_colors.dart';
 import '../../data/update_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -246,6 +247,24 @@ class _PlaybackTab extends ConsumerWidget {
           onChanged: (v) =>
               ref.read(castReceiverEnabledProvider.notifier).set(v),
         ),
+        if (isDesktop) ...[
+          const Divider(),
+          _SectionHeader(l.settingsDesktop),
+          SwitchListTile(
+            secondary: const Icon(Icons.close_fullscreen_rounded),
+            title: Text(l.settingsCloseToTray),
+            subtitle: Text(l.settingsCloseToTraySubtitle),
+            value: ref.watch(closeToTrayProvider).value ?? false,
+            onChanged: (v) => ref.read(closeToTrayProvider.notifier).set(v),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.minimize_rounded),
+            title: Text(l.settingsMinimizeToTray),
+            subtitle: Text(l.settingsMinimizeToTraySubtitle),
+            value: ref.watch(minimizeToTrayProvider).value ?? false,
+            onChanged: (v) => ref.read(minimizeToTrayProvider.notifier).set(v),
+          ),
+        ],
         const Divider(),
         _SectionHeader(l.settingsStorage),
         ListTile(

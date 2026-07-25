@@ -6,6 +6,8 @@ All notable changes to JellyMusic, newest first. This project follows
 ## Unreleased
 
 **Added**
+- Desktop: optional *close to tray* and *minimise to tray* (two independent
+  settings under Settings → Playback → Desktop).
 - CI now also builds a Windows installer (`.exe`, Inno Setup) and a Linux
   Flatpak bundle, alongside the existing portable archives.
 - Collapsible desktop sidebar (icon-only mode), remembered across launches.

@@ -537,6 +537,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shelfRecentlyPlayedTracks => 'Zuletzt gespielte Titel';
 
   @override
+  String get settingsDesktop => 'Desktop';
+
+  @override
+  String get settingsCloseToTray => 'In den Tray schließen';
+
+  @override
+  String get settingsCloseToTraySubtitle =>
+      'JellyMusic beim Schließen des Fensters im Tray weiterlaufen lassen';
+
+  @override
+  String get settingsMinimizeToTray => 'In den Tray minimieren';
+
+  @override
+  String get settingsMinimizeToTraySubtitle =>
+      'Beim Minimieren des Fensters in den Tray verbergen';
+
+  @override
   String get artistAppearsOn => 'Erscheint auf';
 
   @override
