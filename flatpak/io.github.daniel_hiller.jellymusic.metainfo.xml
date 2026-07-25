@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.daniel_hiller.jellymusic</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>JellyMusic</name>
+  <summary>A modern, music-first Jellyfin client</summary>
+  <description>
+    <p>
+      JellyMusic is a music-first client for your Jellyfin server: browse albums,
+      artists, songs, playlists and genres, build a queue, cast to and from other
+      clients, and enjoy gapless playback with an optional crossfade.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.daniel_hiller.jellymusic.desktop</launchable>
+  <url type="homepage">https://github.com/daniel-hiller/jellymusic</url>
+  <url type="bugtracker">https://github.com/daniel-hiller/jellymusic/issues</url>
+  <developer id="io.github.daniel_hiller">
+    <name>Daniel Hiller</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-07-25"/>
+  </releases>
+</component>

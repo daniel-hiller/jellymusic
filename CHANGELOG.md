@@ -6,6 +6,8 @@ All notable changes to JellyMusic, newest first. This project follows
 ## Unreleased
 
 **Added**
+- CI now also builds a Windows installer (`.exe`, Inno Setup) and a Linux
+  Flatpak bundle, alongside the existing portable archives.
 - Collapsible desktop sidebar (icon-only mode), remembered across launches.
 - Your playlists are listed directly in the desktop sidebar.
 - Favourite toggle on playlists, so the favourites filter applies to them too.

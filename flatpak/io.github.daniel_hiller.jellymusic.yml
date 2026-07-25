@@ -1,0 +1,79 @@
+# Flatpak manifest for JellyMusic.
+#
+# JellyMusic plays audio through media_kit / libmpv, which is a *system* library
+# on Linux — so the sandbox has to provide it. We build a slim, audio-only
+# libmpv here (GPU/video disabled: this is a music player) and pull codecs from
+# the org.freedesktop.Platform.ffmpeg-full extension.
+#
+# Built in CI (see the `flatpak` job in .github/workflows/release.yml), which
+# first `flutter build linux` and assembles ./build-context.
+#
+# NOTE: this manifest is verified in CI, not locally — expect to iterate on the
+# libmpv module options if the freedesktop runtime bumps its dependencies.
+app-id: io.github.daniel_hiller.jellymusic
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: jellymusic
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=xdg-music:ro
+
+# Codecs for libmpv come from the ffmpeg-full extension, mounted here.
+add-extensions:
+  org.freedesktop.Platform.ffmpeg-full:
+    directory: lib/ffmpeg
+    add-ld-path: .
+    version: '24.08'
+    autodelete: false
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - '*.a'
+  - '*.la'
+
+modules:
+  # Slim, audio-only libmpv (no video output, no GPU stack → few build deps).
+  - name: libmpv
+    buildsystem: meson
+    config-opts:
+      - -Dlibmpv=true
+      - -Dcplayer=false
+      - -Dtests=false
+      - -Dmanpage-build=disabled
+      - -Dlibplacebo=disabled
+      - -Dgl=disabled
+      - -Dvulkan=disabled
+      - -Dvaapi=disabled
+      - -Dvdpau=disabled
+      - -Ddrm=disabled
+      - -Dwayland=disabled
+      - -Dx11=disabled
+      - -Dlua=disabled
+      - -Djavascript=disabled
+    sources:
+      - type: git
+        url: https://github.com/mpv-player/mpv.git
+        tag: v0.37.0
+
+  - name: jellymusic
+    buildsystem: simple
+    build-commands:
+      - cp -r bundle /app/jellymusic
+      - install -Dm755 jellymusic.sh /app/bin/jellymusic
+      - install -Dm644 io.github.daniel_hiller.jellymusic.desktop
+        /app/share/applications/io.github.daniel_hiller.jellymusic.desktop
+      - install -Dm644 io.github.daniel_hiller.jellymusic.metainfo.xml
+        /app/share/metainfo/io.github.daniel_hiller.jellymusic.metainfo.xml
+      - install -Dm644 icon.png
+        /app/share/icons/hicolor/256x256/apps/io.github.daniel_hiller.jellymusic.png
+    sources:
+      - type: dir
+        path: build-context

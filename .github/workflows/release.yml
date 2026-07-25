@@ -178,15 +178,22 @@ jobs:
       - run: flutter pub get
       - run: flutter build windows --release --dart-define=APP_VERSION=%VERSION% --build-name=%VERSION% --build-number=${{ github.run_number }}
         shell: cmd
-      - name: Package
+      - name: Package (portable zip)
         shell: bash
         run: (cd build/windows/x64/runner/Release && 7z a ../../../../../jellymusic-windows-x64-$VERSION.zip .)
+      - name: Build installer (Inno Setup)
+        shell: cmd
+        run: |
+          choco install innosetup -y --no-progress
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=%VERSION% "/DBuildDir=%CD%\build\windows\x64\runner\Release" windows\installer\jellymusic.iss
       - name: Upload to release
         if: github.event_name == 'release'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" jellymusic-windows-x64-$VERSION.zip --clobber
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" jellymusic-windows-x64-$VERSION.zip --clobber
+          gh release upload "${{ github.event.release.tag_name }}" "windows/installer/Output/jellymusic-windows-x64-$VERSION-setup.exe" --clobber
 
   macos:
     runs-on: macos-latest
@@ -216,3 +223,57 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ github.event.release.tag_name }}" jellymusic-macos-$VERSION.zip --clobber
+
+  flatpak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Install native deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev libmpv-dev mpv \
+            libsecret-1-dev libjsoncpp-dev \
+            libayatana-appindicator3-dev \
+            flatpak flatpak-builder
+      - name: Resolve version from tag
+        shell: bash
+        run: |
+          V="${{ github.event.release.tag_name }}"; V="${V#v}"
+          echo "VERSION=${V:-0.0.0-manual}" >> "$GITHUB_ENV"
+      - run: flutter pub get
+      - run: flutter build linux --release --dart-define=APP_VERSION=$VERSION
+      - name: Assemble flatpak build context
+        run: |
+          rm -rf flatpak/build-context
+          mkdir -p flatpak/build-context
+          cp -r build/linux/x64/release/bundle flatpak/build-context/bundle
+          cp flatpak/jellymusic.sh flatpak/build-context/
+          cp flatpak/io.github.daniel_hiller.jellymusic.desktop flatpak/build-context/
+          cp flatpak/io.github.daniel_hiller.jellymusic.metainfo.xml flatpak/build-context/
+          cp assets/icon/brand-1024.png flatpak/build-context/icon.png
+      - name: Install Flatpak runtimes
+        run: |
+          flatpak remote-add --if-not-exists --user \
+            flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub \
+            org.freedesktop.Platform//24.08 \
+            org.freedesktop.Sdk//24.08 \
+            org.freedesktop.Platform.ffmpeg-full//24.08
+      - name: Build Flatpak bundle
+        run: |
+          flatpak-builder --user --disable-rofiles-fuse --force-clean \
+            --repo=flatpak-repo flatpak-build \
+            flatpak/io.github.daniel_hiller.jellymusic.yml
+          flatpak build-bundle flatpak-repo \
+            jellymusic-linux-$VERSION.flatpak \
+            io.github.daniel_hiller.jellymusic
+      - name: Upload to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" jellymusic-linux-$VERSION.flatpak --clobber
