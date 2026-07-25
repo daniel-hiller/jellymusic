@@ -25,17 +25,18 @@ class MiniWindowController extends Notifier<bool> {
     if (state) return;
     _savedSize = await windowManager.getSize();
     _savedPosition = await windowManager.getPosition();
-    await windowManager.setMinimumSize(const Size(320, 120));
-    await windowManager.setResizable(false);
-    await windowManager.setAlwaysOnTop(true);
+    // Order matters on GTK/Linux: lower the minimum first, THEN resize. Locking
+    // resizable before setSize would pin the window at its current size, so we
+    // don't lock it at all here.
+    await windowManager.setMinimumSize(const Size(300, 110));
     await windowManager.setSize(_miniSize);
+    await windowManager.setAlwaysOnTop(true);
     state = true;
   }
 
   Future<void> exit() async {
     if (!state) return;
     await windowManager.setAlwaysOnTop(false);
-    await windowManager.setResizable(true);
     await windowManager.setMinimumSize(const Size(480, 600));
     if (_savedSize != null) await windowManager.setSize(_savedSize!);
     if (_savedPosition != null) {
