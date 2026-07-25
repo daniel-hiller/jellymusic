@@ -17,21 +17,37 @@ class LibraryQuery {
     required this.sortField,
     this.descending = false,
     this.favoritesOnly = false,
+    this.startLetter,
+    this.searchTerm = '',
   });
 
   final String sortField;
   final bool descending;
   final bool favoritesOnly;
 
+  /// In-tab text search (server `searchTerm`). Empty = no search. A search and
+  /// an A–Z letter are mutually exclusive — setting one clears the other.
+  final String searchTerm;
+
+  /// A–Z filter: when set, the list shows only items whose name starts with
+  /// this letter (server `nameStartsWith`). Null shows the whole list. Pass
+  /// `clearLetter: true` to reset it (e.g. on a sort change).
+  final String? startLetter;
+
   LibraryQuery copyWith({
     String? sortField,
     bool? descending,
     bool? favoritesOnly,
+    String? startLetter,
+    bool clearLetter = false,
+    String? searchTerm,
   }) {
     return LibraryQuery(
       sortField: sortField ?? this.sortField,
       descending: descending ?? this.descending,
       favoritesOnly: favoritesOnly ?? this.favoritesOnly,
+      startLetter: clearLetter ? null : (startLetter ?? this.startLetter),
+      searchTerm: searchTerm ?? this.searchTerm,
     );
   }
 
@@ -40,10 +56,13 @@ class LibraryQuery {
       other is LibraryQuery &&
       other.sortField == sortField &&
       other.descending == descending &&
-      other.favoritesOnly == favoritesOnly;
+      other.favoritesOnly == favoritesOnly &&
+      other.startLetter == startLetter &&
+      other.searchTerm == searchTerm;
 
   @override
-  int get hashCode => Object.hash(sortField, descending, favoritesOnly);
+  int get hashCode => Object.hash(
+      sortField, descending, favoritesOnly, startLetter, searchTerm);
 }
 
 /// Sort menus per browsable type.

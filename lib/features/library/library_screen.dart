@@ -207,9 +207,15 @@ class _PagedBody extends ConsumerWidget {
     }
 
     return _AlphabetScroll(
-      items: state.items,
-      onNearLetter: () =>
-          ref.read(pagedLibraryProvider(kind).notifier).loadMore(),
+      activeLetter: ref.watch(queryProviderFor(kind)).startLetter,
+      // A letter filters the list to that letter via the server; '#' clears
+      // the filter and shows the whole list.
+      onLetter: (letter) {
+        final notifier = ref.read(queryProviderFor(kind).notifier);
+        notifier.state = letter == '#'
+            ? notifier.state.copyWith(clearLetter: true)
+            : notifier.state.copyWith(startLetter: letter);
+      },
       builder: (controller) => NotificationListener<ScrollNotification>(
         onNotification: (n) {
           if (n.metrics.pixels >= n.metrics.maxScrollExtent - 700) {
@@ -236,6 +242,7 @@ class _PlaylistsList extends ConsumerWidget {
         LibraryControlsBar(
           queryProvider: playlistsQueryProvider,
           sortOptions: SortOptions.playlists,
+          searchable: false,
         ),
         Expanded(
           child: playlists.when(
@@ -426,19 +433,20 @@ class _GenreTile extends StatelessWidget {
   }
 }
 
-/// Wraps a scrollable with an A–Z jump rail on the right (desktop only).
-/// Tapping a letter scrolls to the first loaded item in that bucket; if the
-/// letter isn't loaded yet it asks for another page via [onNearLetter].
+/// Wraps a scrollable with an A–Z filter rail on the right (desktop only).
+/// Tapping a letter loads only items starting with it via the server, like the
+/// official client. [onLetter] receives the tapped letter; [activeLetter] is
+/// the currently applied one (null = no filter, shown as `#`).
 class _AlphabetScroll extends StatefulWidget {
   const _AlphabetScroll({
-    required this.items,
-    required this.onNearLetter,
+    required this.onLetter,
     required this.builder,
+    this.activeLetter,
   });
 
-  final List<JellyfinItem> items;
-  final VoidCallback onNearLetter;
+  final void Function(String letter) onLetter;
   final Widget Function(ScrollController controller) builder;
+  final String? activeLetter;
 
   @override
   State<_AlphabetScroll> createState() => _AlphabetScrollState();
@@ -457,69 +465,80 @@ class _AlphabetScrollState extends State<_AlphabetScroll> {
     super.dispose();
   }
 
-  String _bucket(String name) {
-    final t = name.trimLeft();
-    if (t.isEmpty) return '#';
-    final c = t[0].toUpperCase();
-    return (c.compareTo('A') >= 0 && c.compareTo('Z') <= 0) ? c : '#';
-  }
-
-  void _jumpTo(String letter) {
-    final items = widget.items;
-    final idx = items.indexWhere((it) => _bucket(it.name).compareTo(letter) >= 0);
-    if (idx < 0) {
-      widget.onNearLetter(); // beyond what's loaded — fetch more, tap again
-      return;
-    }
-    if (!_controller.hasClients) return;
-    final max = _controller.position.maxScrollExtent;
-    // Proportional jump — works for both list and grid without knowing the
-    // exact per-item extent; lands near the bucket, which is close enough.
-    final frac = items.isEmpty ? 0.0 : idx / items.length;
-    _controller.animateTo(
-      (frac * max).clamp(0.0, max),
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeInOut,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final scrollable = widget.builder(_controller);
     final isWide = MediaQuery.sizeOf(context).width >= 800;
     if (!isWide) return scrollable;
 
+    // No letter filter → '#' is the active ("all") entry.
+    final active = widget.activeLetter ?? '#';
+
     return Row(
       children: [
         Expanded(child: scrollable),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: LayoutBuilder(
-            builder: (context, c) => Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final letter in _letters)
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => _jumpTo(letter),
-                      child: Center(
-                        child: Text(
-                          letter,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: context.colors.textTertiary,
-                          ),
-                        ),
-                      ),
-                    ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final letter in _letters)
+                Expanded(
+                  child: _LetterTile(
+                    letter: letter,
+                    selected: letter == active,
+                    onTap: () => widget.onLetter(letter),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A single rail letter: larger tap target, hover highlight, and an accent
+/// pill when it's the active filter.
+class _LetterTile extends StatelessWidget {
+  const _LetterTile({
+    required this.letter,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String letter;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.colors.accent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        hoverColor: accent.withValues(alpha: 0.14),
+        child: Container(
+          width: 22,
+          alignment: Alignment.center,
+          decoration: selected
+              ? BoxDecoration(
+                  color: accent.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(6),
+                )
+              : null,
+          child: Text(
+            letter,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              color: selected ? accent : context.colors.textSecondary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -90,14 +90,31 @@ class MusicRepository {
     return res.items;
   }
 
-  /// All albums, paged and sorted. Set [favoritesOnly] to filter to favourites.
+  /// All albums, paged and sorted. Set [favoritesOnly] to filter to favourites;
+  /// [startLetter] filters to that letter via the server.
   Future<JellyfinQueryResult<JellyfinItem>> albums({
     int startIndex = 0,
     int limit = 100,
     List<String> sortBy = const ['SortName'],
     bool descending = false,
     bool favoritesOnly = false,
+    String? startLetter,
+    String searchTerm = '',
   }) {
+    if (searchTerm.isNotEmpty) {
+      // Match on the album name *and* the artist, so typing an artist finds
+      // their albums (plain searchTerm on MusicAlbum only hits the album name).
+      return _albumsMatching(searchTerm,
+          sortBy: sortBy, descending: descending, favoritesOnly: favoritesOnly);
+    }
+    if (startLetter != null) {
+      return _letterPage(JellyfinItemKind.musicAlbum, startLetter,
+          startIndex: startIndex,
+          limit: limit,
+          sortBy: sortBy,
+          descending: descending,
+          favoritesOnly: favoritesOnly);
+    }
     return _c.items.list(
       includeItemTypes: const [JellyfinItemKind.musicAlbum],
       sortBy: sortBy,
@@ -108,6 +125,52 @@ class MusicRepository {
     );
   }
 
+  /// Album search that matches the album name *and* the artist: runs the plain
+  /// name search, resolves artists whose name matches, and unions in their
+  /// albums. Returned as one un-paged result (search hits are already narrow),
+  /// deduped by id, name matches first.
+  Future<JellyfinQueryResult<JellyfinItem>> _albumsMatching(
+    String term, {
+    required List<String> sortBy,
+    required bool descending,
+    required bool favoritesOnly,
+  }) async {
+    final filters = favoritesOnly ? const ['IsFavorite'] : const <String>[];
+    final byName = await _c.items.list(
+      includeItemTypes: const [JellyfinItemKind.musicAlbum],
+      sortBy: sortBy,
+      descending: descending,
+      filters: filters,
+      searchTerm: term,
+      limit: 100,
+    );
+    final matchedArtists = await _c.items.list(
+      includeItemTypes: const [JellyfinItemKind.musicArtist],
+      searchTerm: term,
+      limit: 20,
+    );
+    final artistIds = [for (final a in matchedArtists.items) a.id];
+    var byArtist = const <JellyfinItem>[];
+    if (artistIds.isNotEmpty) {
+      final res = await _c.items.list(
+        includeItemTypes: const [JellyfinItemKind.musicAlbum],
+        artistIds: artistIds.join(','),
+        sortBy: sortBy,
+        descending: descending,
+        filters: filters,
+        limit: 100,
+      );
+      byArtist = res.items;
+    }
+    final seen = <String>{};
+    final merged = [
+      for (final a in [...byName.items, ...byArtist])
+        if (seen.add(a.id)) a,
+    ];
+    return JellyfinQueryResult(
+        items: merged, totalRecordCount: merged.length);
+  }
+
   /// All artists, paged and sorted.
   Future<JellyfinQueryResult<JellyfinItem>> artists({
     int startIndex = 0,
@@ -115,7 +178,28 @@ class MusicRepository {
     List<String> sortBy = const ['SortName'],
     bool descending = false,
     bool favoritesOnly = false,
+    String? startLetter,
+    String searchTerm = '',
   }) {
+    if (searchTerm.isNotEmpty) {
+      return _c.items.list(
+        includeItemTypes: const [JellyfinItemKind.musicArtist],
+        sortBy: sortBy,
+        descending: descending,
+        filters: favoritesOnly ? const ['IsFavorite'] : const [],
+        searchTerm: searchTerm,
+        startIndex: startIndex,
+        limit: limit,
+      );
+    }
+    if (startLetter != null) {
+      return _letterPage(JellyfinItemKind.musicArtist, startLetter,
+          startIndex: startIndex,
+          limit: limit,
+          sortBy: sortBy,
+          descending: descending,
+          favoritesOnly: favoritesOnly);
+    }
     return _c.items.list(
       includeItemTypes: const [JellyfinItemKind.musicArtist],
       sortBy: sortBy,
@@ -133,7 +217,28 @@ class MusicRepository {
     List<String> sortBy = const ['SortName'],
     bool descending = false,
     bool favoritesOnly = false,
+    String? startLetter,
+    String searchTerm = '',
   }) {
+    if (searchTerm.isNotEmpty) {
+      return _c.items.list(
+        includeItemTypes: const [JellyfinItemKind.audio],
+        sortBy: sortBy,
+        descending: descending,
+        filters: favoritesOnly ? const ['IsFavorite'] : const [],
+        searchTerm: searchTerm,
+        startIndex: startIndex,
+        limit: limit,
+      );
+    }
+    if (startLetter != null) {
+      return _letterPage(JellyfinItemKind.audio, startLetter,
+          startIndex: startIndex,
+          limit: limit,
+          sortBy: sortBy,
+          descending: descending,
+          favoritesOnly: favoritesOnly);
+    }
     return _c.items.list(
       includeItemTypes: const [JellyfinItemKind.audio],
       sortBy: sortBy,
@@ -142,6 +247,41 @@ class MusicRepository {
       startIndex: startIndex,
       limit: limit,
     );
+  }
+
+  /// A page of one item type whose name **starts with** [letter] — the A–Z
+  /// filter. Uses `nameStartsWith` (not `…OrGreater`) so scrolling stays within
+  /// the letter instead of bleeding into the rest of the alphabet. The typed
+  /// `items.list` doesn't expose it, so this goes through the client's
+  /// raw-request escape hatch, mirroring the params `list` sends.
+  Future<JellyfinQueryResult<JellyfinItem>> _letterPage(
+    String includeItemType,
+    String letter, {
+    required int startIndex,
+    required int limit,
+    required List<String> sortBy,
+    required bool descending,
+    required bool favoritesOnly,
+  }) async {
+    final res = await _c.request<Map<String, dynamic>>(
+      '/Items',
+      queryParameters: {
+        'userId': _c.userId,
+        'recursive': true,
+        'enableImages': true,
+        'enableUserData': true,
+        'includeItemTypes': includeItemType,
+        if (sortBy.isNotEmpty) 'sortBy': sortBy.join(','),
+        'sortOrder': descending ? 'Descending' : 'Ascending',
+        if (favoritesOnly) 'filters': 'IsFavorite',
+        'startIndex': startIndex,
+        'limit': limit,
+        'nameStartsWith': letter,
+        'fields': JellyfinItemsApi.musicFields.join(','),
+      },
+    );
+    return JellyfinQueryResult.fromJson(
+        res.data ?? const {}, JellyfinItem.fromJson);
   }
 
   // ─── Playlists ─────────────────────────────────────────────────────

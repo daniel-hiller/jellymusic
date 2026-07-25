@@ -42,6 +42,14 @@ class PagedState {
 final pagedLibraryProvider = NotifierProvider.autoDispose
     .family<PagedLibrary, PagedState, LibraryKind>(PagedLibrary.new);
 
+/// The per-tab sort/filter/letter state provider for [kind]. Exposed so the
+/// A–Z rail can set `startLetter` on the right tab.
+StateProvider<LibraryQuery> queryProviderFor(LibraryKind kind) => switch (kind) {
+      LibraryKind.albums => albumsQueryProvider,
+      LibraryKind.artists => artistsQueryProvider,
+      LibraryKind.songs => songsQueryProvider,
+    };
+
 class PagedLibrary extends Notifier<PagedState> {
   // Riverpod 3 passes the family argument to the notifier's constructor
   // instead of to `build`.
@@ -52,11 +60,7 @@ class PagedLibrary extends Notifier<PagedState> {
   static const _pageSize = 60;
   bool _busy = false;
 
-  StateProvider<LibraryQuery> get _queryProvider => switch (arg) {
-        LibraryKind.albums => albumsQueryProvider,
-        LibraryKind.artists => artistsQueryProvider,
-        LibraryKind.songs => songsQueryProvider,
-      };
+  StateProvider<LibraryQuery> get _queryProvider => queryProviderFor(arg);
 
   @override
   PagedState build() {
@@ -78,19 +82,25 @@ class PagedLibrary extends Notifier<PagedState> {
           limit: _pageSize,
           sortBy: sortBy,
           descending: q.descending,
-          favoritesOnly: q.favoritesOnly),
+          favoritesOnly: q.favoritesOnly,
+          startLetter: q.startLetter,
+          searchTerm: q.searchTerm),
       LibraryKind.artists => repo.artists(
           startIndex: start,
           limit: _pageSize,
           sortBy: sortBy,
           descending: q.descending,
-          favoritesOnly: q.favoritesOnly),
+          favoritesOnly: q.favoritesOnly,
+          startLetter: q.startLetter,
+          searchTerm: q.searchTerm),
       LibraryKind.songs => repo.songs(
           startIndex: start,
           limit: _pageSize,
           sortBy: sortBy,
           descending: q.descending,
-          favoritesOnly: q.favoritesOnly),
+          favoritesOnly: q.favoritesOnly,
+          startLetter: q.startLetter,
+          searchTerm: q.searchTerm),
     };
   }
 
