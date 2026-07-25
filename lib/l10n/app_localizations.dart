@@ -1088,6 +1088,18 @@ abstract class AppLocalizations {
   /// **'Zuletzt gespielte Titel'**
   String get shelfRecentlyPlayedTracks;
 
+  /// No description provided for @miniPlayerCompact.
+  ///
+  /// In de, this message translates to:
+  /// **'Mini-Player'**
+  String get miniPlayerCompact;
+
+  /// No description provided for @miniPlayerExpand.
+  ///
+  /// In de, this message translates to:
+  /// **'Vergrößern'**
+  String get miniPlayerExpand;
+
   /// No description provided for @settingsDesktop.
   ///
   /// In de, this message translates to:

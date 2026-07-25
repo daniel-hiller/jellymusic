@@ -10,6 +10,7 @@ import '../../features/library/genre_detail_screen.dart';
 import '../../features/library/library_screen.dart';
 import '../../features/library/playlist_add_songs_screen.dart';
 import '../../features/library/playlist_detail_screen.dart';
+import '../../features/player/mini_window.dart';
 import '../../features/player/now_playing_screen.dart';
 import '../../features/player/queue_screen.dart';
 import '../../features/search/search_screen.dart';
@@ -77,6 +78,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/queue',
         parentNavigatorKey: _rootKey, // above the shell, reachable everywhere
         builder: (_, __) => const SwipeBack(child: QueueScreen()),
+      ),
+      GoRoute(
+        path: '/mini',
+        parentNavigatorKey: _rootKey, // compact window, above everything
+        builder: (_, __) => const MiniPlayerWindow(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (_, __, navigationShell) =>

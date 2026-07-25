@@ -168,6 +168,8 @@
   "sortAlbum": "Album",
   "sortTitle": "Title",
   "shelfRecentlyPlayedTracks": "Recently played tracks",
+  "miniPlayerCompact": "Mini player",
+  "miniPlayerExpand": "Expand",
   "settingsDesktop": "Desktop",
   "settingsCloseToTray": "Close to tray",
   "settingsCloseToTraySubtitle": "Keep JellyMusic running in the tray when the window is closed",

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/desktop/desktop_tray.dart' show isDesktop;
 import '../../core/theme/jelly_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/cast_providers.dart';
 import '../../providers/player_providers.dart';
 import '../../widgets/cover_art.dart';
 import 'cast_sheet.dart';
+import 'mini_window.dart';
 import 'player_widgets.dart';
 
 /// The persistent bar above the nav showing the current track. Compact on
@@ -136,6 +138,19 @@ class MiniPlayer extends ConsumerWidget {
                             ),
                             const CastButton(showLabel: true),
                             const VolumeControl(width: 110),
+                            if (isDesktop)
+                              IconButton(
+                                tooltip: l.miniPlayerCompact,
+                                icon: const Icon(
+                                    Icons.picture_in_picture_alt_rounded,
+                                    size: 20),
+                                onPressed: () async {
+                                  await ref
+                                      .read(miniWindowProvider.notifier)
+                                      .enter();
+                                  if (context.mounted) context.push('/mini');
+                                },
+                              ),
                             IconButton(
                               tooltip: l.fullscreenTooltip,
                               icon: const Icon(

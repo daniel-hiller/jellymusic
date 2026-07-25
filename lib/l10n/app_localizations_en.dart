@@ -536,6 +536,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shelfRecentlyPlayedTracks => 'Recently played tracks';
 
   @override
+  String get miniPlayerCompact => 'Mini player';
+
+  @override
+  String get miniPlayerExpand => 'Expand';
+
+  @override
   String get settingsDesktop => 'Desktop';
 
   @override

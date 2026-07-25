@@ -179,6 +179,8 @@
   "sortAlbum": "Album",
   "sortTitle": "Titel",
   "shelfRecentlyPlayedTracks": "Zuletzt gespielte Titel",
+  "miniPlayerCompact": "Mini-Player",
+  "miniPlayerExpand": "Vergrößern",
   "settingsDesktop": "Desktop",
   "settingsCloseToTray": "In den Tray schließen",
   "settingsCloseToTraySubtitle": "JellyMusic beim Schließen des Fensters im Tray weiterlaufen lassen",

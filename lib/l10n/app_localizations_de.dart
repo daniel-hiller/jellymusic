@@ -537,6 +537,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shelfRecentlyPlayedTracks => 'Zuletzt gespielte Titel';
 
   @override
+  String get miniPlayerCompact => 'Mini-Player';
+
+  @override
+  String get miniPlayerExpand => 'Vergrößern';
+
+  @override
   String get settingsDesktop => 'Desktop';
 
   @override

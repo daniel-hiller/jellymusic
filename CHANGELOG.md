@@ -6,6 +6,9 @@ All notable changes to JellyMusic, newest first. This project follows
 ## Unreleased
 
 **Added**
+- Desktop: a Spotify-style mini player — shrinks the window into a small,
+  always-on-top compact bar (cover, title, transport), with a button to expand
+  back to the full app.
 - Desktop: optional *close to tray* and *minimise to tray* (two independent
   settings under Settings → Playback → Desktop).
 - CI now also builds a Windows installer (`.exe`, Inno Setup) and a Linux
