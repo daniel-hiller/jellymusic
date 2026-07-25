@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/util/item_x.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
@@ -94,7 +95,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ..._section(l.tabAlbums, albums, (a) {
                         return _EntityTile(
                           title: a.name,
-                          subtitle: a.albumArtist ?? l.labelAlbum,
+                          subtitle: a.albumArtistLabel.isNotEmpty
+                              ? a.albumArtistLabel
+                              : l.labelAlbum,
                           imageUrl: service.primaryImageUrl(a, size: 128),
                           onTap: () =>
                               context.go('/search/album/${a.id}'),

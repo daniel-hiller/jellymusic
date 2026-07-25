@@ -44,6 +44,8 @@ class AlbumDetailScreen extends ConsumerWidget {
             _runtime(tracks),
           ].where((s) => s.isNotEmpty).join(' · ');
 
+          final albumArtist = album?.albumArtistLabel ?? '';
+
           return CustomScrollView(
             slivers: [
               const SliverAppBar(pinned: true, expandedHeight: 0),
@@ -71,11 +73,20 @@ class AlbumDetailScreen extends ConsumerWidget {
               const SliverToBoxAdapter(child: SizedBox(height: 8)),
               SliverList.builder(
                 itemCount: tracks.length,
-                itemBuilder: (context, i) => SongTile(
-                  song: tracks[i],
-                  showArtist: false,
-                  onTap: () => controller.playItems(tracks, index: i),
-                ),
+                itemBuilder: (context, i) {
+                  final track = tracks[i];
+                  final trackArtist = track.trackArtistLabel;
+                  // Only show the per-track artist when it differs from the
+                  // album artist — i.e. compilations ("Various Artists") and
+                  // guest features. Hides the redundant repeat on normal albums.
+                  final showArtist = trackArtist.isNotEmpty &&
+                      trackArtist.toLowerCase() != albumArtist.toLowerCase();
+                  return SongTile(
+                    song: track,
+                    showArtist: showArtist,
+                    onTap: () => controller.playItems(tracks, index: i),
+                  );
+                },
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],

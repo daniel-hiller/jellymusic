@@ -5,6 +5,7 @@ import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../data/jellyfin/jellyfin_service.dart';
+import '../util/item_x.dart';
 
 /// Bridges [just_audio] (actual playback) and [audio_service] (background
 /// playback + OS media controls: notification, lockscreen, media keys).
@@ -333,9 +334,7 @@ class AudioPlayerHandler extends BaseAudioHandler
       id: item.id,
       title: item.name,
       album: item.album,
-      artist: item.artists.isNotEmpty
-          ? item.artists.join(', ')
-          : item.albumArtist,
+      artist: item.trackArtistLabel,
       duration: item.durationMs != null
           ? Duration(milliseconds: item.durationMs!)
           : null,
