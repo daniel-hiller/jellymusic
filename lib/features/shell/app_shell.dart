@@ -7,6 +7,7 @@ import '../../core/theme/jelly_colors.dart';
 import '../../data/update_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/brand_mark.dart';
+import '../library/library_section.dart';
 import '../player/mini_player.dart';
 
 /// Responsive chrome around the four top-level branches (Home / Library /
@@ -17,12 +18,15 @@ import '../player/mini_player.dart';
 /// - Narrow (phones): a bottom [NavigationBar] with the three primary
 ///   destinations and the mini player docked above it; Settings is reached via
 ///   the gear in each screen's app bar.
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   static const _rail = 800.0;
+  static const int _homeBranch = 0;
+  static const int _libraryBranch = 1;
+  static const int _searchBranch = 2;
   static const int _settingsBranch = 3;
 
   void _go(int index) => navigationShell.goBranch(
@@ -31,7 +35,7 @@ class AppShell extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final isWide = MediaQuery.sizeOf(context).width >= _rail;
     final index = navigationShell.currentIndex;
@@ -45,6 +49,9 @@ class AppShell extends StatelessWidget {
     ];
 
     if (isWide) {
+      // On desktop the library categories live directly in the rail (their tab
+      // bar collapses), so the sidebar drives the active section.
+      final section = ref.watch(librarySectionProvider);
       return Scaffold(
         body: Row(
           children: [
@@ -67,14 +74,49 @@ class AppShell extends StatelessWidget {
                       ],
                     ),
                   ),
-                  for (var i = 0; i < primary.length; i++)
-                    _RailItem(
-                      label: primary[i].$1,
-                      icon: index == i ? primary[i].$2 : primary[i].$3,
-                      selected: index == i,
-                      onTap: () => _go(i),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _RailItem(
+                            label: l.navHome,
+                            icon: index == _homeBranch
+                                ? Icons.home_rounded
+                                : Icons.home_outlined,
+                            selected: index == _homeBranch,
+                            onTap: () => _go(_homeBranch),
+                          ),
+                          _RailSectionLabel(l.libraryTitle),
+                          for (final s in LibrarySection.values)
+                            _RailItem(
+                              label: s.label(l),
+                              icon: (index == _libraryBranch && section == s)
+                                  ? s.icon
+                                  : s.outlinedIcon,
+                              selected:
+                                  index == _libraryBranch && section == s,
+                              onTap: () {
+                                ref
+                                    .read(librarySectionProvider.notifier)
+                                    .state = s;
+                                _go(_libraryBranch);
+                              },
+                            ),
+                          const SizedBox(height: 12),
+                          _RailItem(
+                            label: l.navSearch,
+                            icon: index == _searchBranch
+                                ? Icons.search_rounded
+                                : Icons.search_outlined,
+                            selected: index == _searchBranch,
+                            onTap: () => _go(_searchBranch),
+                          ),
+                        ],
+                      ),
                     ),
-                  const Spacer(),
+                  ),
+                  const SizedBox(height: 8),
                   _RailItem(
                     label: l.settingsTitle,
                     icon: Icons.settings_rounded,
@@ -175,6 +217,29 @@ class _RailItem extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small caps group heading in the rail (e.g. "BIBLIOTHEK").
+class _RailSectionLabel extends StatelessWidget {
+  const _RailSectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: context.colors.textTertiary,
         ),
       ),
     );

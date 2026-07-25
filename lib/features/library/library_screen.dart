@@ -13,21 +13,46 @@ import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 import 'library_controls_bar.dart';
 import 'library_query.dart';
+import 'library_section.dart';
 import 'paged_library.dart';
 import 'playlist_actions.dart';
 
-/// The library browser: Albums / Artists / Songs / Playlists / Favourites.
-/// Each browsable tab carries a [LibraryControlsBar] (sort + direction +
-/// favourites filter). Grids use a max-extent delegate so column count adapts
-/// from phone to desktop.
+/// The library browser: Albums / Artists / Songs / Playlists / Genres /
+/// Favourites. Each browsable tab carries a [LibraryControlsBar] (sort +
+/// direction + favourites filter). Grids use a max-extent delegate so column
+/// count adapts from phone to desktop.
+///
+/// - Desktop (≥ 800 px): the sidebar drives which category shows, so this
+///   renders just the active section (via [librarySectionProvider]).
+/// - Phones: the categories stay as a tab bar here.
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
+
+  /// The body widget for a single category.
+  static Widget bodyFor(LibrarySection section) => switch (section) {
+        LibrarySection.albums => const _AlbumsGrid(),
+        LibrarySection.artists => const _ArtistsGrid(),
+        LibrarySection.songs => const _SongsList(),
+        LibrarySection.playlists => const _PlaylistsList(),
+        LibrarySection.genres => const _GenresList(),
+        LibrarySection.favorites => const _FavoritesList(),
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final isWide = MediaQuery.sizeOf(context).width >= 800;
+
+    if (isWide) {
+      final section = ref.watch(librarySectionProvider);
+      return Scaffold(
+        appBar: AppBar(title: Text(section.label(l))),
+        body: bodyFor(section),
+      );
+    }
+
     return DefaultTabController(
-      length: 6,
+      length: LibrarySection.values.length,
       child: Scaffold(
         appBar: AppBar(
           title: Text(l.libraryTitle),
@@ -35,23 +60,13 @@ class LibraryScreen extends ConsumerWidget {
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(text: l.tabAlbums),
-              Tab(text: l.tabArtists),
-              Tab(text: l.tabSongs),
-              Tab(text: l.tabPlaylists),
-              Tab(text: l.tabGenres),
-              Tab(text: l.tabFavorites),
+              for (final s in LibrarySection.values) Tab(text: s.label(l)),
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            _AlbumsGrid(),
-            _ArtistsGrid(),
-            _SongsList(),
-            _PlaylistsList(),
-            _GenresList(),
-            _FavoritesList(),
+            for (final s in LibrarySection.values) bodyFor(s),
           ],
         ),
       ),
