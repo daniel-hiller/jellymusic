@@ -6,6 +6,9 @@ All notable changes to JellyMusic, newest first. This project follows
 ## Unreleased
 
 **Added**
+- Collapsible desktop sidebar (icon-only mode), remembered across launches.
+- Your playlists are listed directly in the desktop sidebar.
+- Favourite toggle on playlists, so the favourites filter applies to them too.
 - Richer artist page: an "Appears on" section (guest spots / compilations,
   separate from the artist's own albums) and the artist biography.
 - Recently played *tracks* shelf on the home screen.
@@ -31,6 +34,10 @@ All notable changes to JellyMusic, newest first. This project follows
 - Album track lists now show the per-track artist on compilations and guest
   features; more robust artist fallback in the player, OS notification and
   search results.
+
+**Removed**
+- The separate library "Favourites" view — every list already carries a
+  favourites filter, which covers it.
 
 ## v1.0.0 — 2026-07-25
 

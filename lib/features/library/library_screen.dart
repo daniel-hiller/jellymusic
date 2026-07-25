@@ -35,7 +35,6 @@ class LibraryScreen extends ConsumerWidget {
         LibrarySection.songs => const _SongsList(),
         LibrarySection.playlists => const _PlaylistsList(),
         LibrarySection.genres => const _GenresList(),
-        LibrarySection.favorites => const _FavoritesList(),
       };
 
   @override
@@ -329,34 +328,6 @@ class _GenresList extends ConsumerWidget {
           itemBuilder: (context, i) => _GenreTile(
             genre: items[i],
             onTap: () => context.go('/library/genre/${items[i].id}'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _FavoritesList extends ConsumerWidget {
-  const _FavoritesList();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final favs = ref.watch(favoriteSongsProvider);
-    final controller = ref.watch(playerControllerProvider);
-    return favs.when(
-      loading: () => const SongRowsSkeleton(),
-      error: (e, _) => Center(child: Text(l.errorWithMessage('$e'))),
-      data: (songs) {
-        if (songs.isEmpty) {
-          return Center(child: Text(l.favoritesEmpty));
-        }
-        return ListView.builder(
-          itemCount: songs.length,
-          itemBuilder: (context, i) => SongTile(
-            song: songs[i],
-            showCoverArt: true,
-            onTap: () => controller.playItems(songs, index: i),
           ),
         );
       },

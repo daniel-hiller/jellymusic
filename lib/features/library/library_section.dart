@@ -5,7 +5,10 @@ import '../../l10n/app_localizations.dart';
 
 /// The browsable library categories. On desktop each is a direct sidebar entry;
 /// on phones they stay as tabs inside the library screen.
-enum LibrarySection { albums, artists, songs, playlists, genres, favorites }
+///
+/// There's deliberately no "favourites" entry — every list carries a favourites
+/// filter in its controls bar, which covers it without a separate view.
+enum LibrarySection { albums, artists, songs, playlists, genres }
 
 /// Which library category the desktop content area shows. Driven by the
 /// sidebar; ignored on phones (they use the tab bar instead).
@@ -20,7 +23,6 @@ extension LibrarySectionMeta on LibrarySection {
         LibrarySection.songs => l.tabSongs,
         LibrarySection.playlists => l.tabPlaylists,
         LibrarySection.genres => l.tabGenres,
-        LibrarySection.favorites => l.tabFavorites,
       };
 
   IconData get icon => switch (this) {
@@ -29,7 +31,6 @@ extension LibrarySectionMeta on LibrarySection {
         LibrarySection.songs => Icons.music_note_rounded,
         LibrarySection.playlists => Icons.queue_music_rounded,
         LibrarySection.genres => Icons.category_rounded,
-        LibrarySection.favorites => Icons.favorite_rounded,
       };
 
   IconData get outlinedIcon => switch (this) {
@@ -38,6 +39,5 @@ extension LibrarySectionMeta on LibrarySection {
         LibrarySection.songs => Icons.music_note_outlined,
         LibrarySection.playlists => Icons.queue_music_outlined,
         LibrarySection.genres => Icons.category_outlined,
-        LibrarySection.favorites => Icons.favorite_border_rounded,
       };
 }

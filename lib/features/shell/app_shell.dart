@@ -1,3 +1,4 @@
+import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,9 +7,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/jelly_colors.dart';
 import '../../data/update_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/providers.dart';
 import '../../widgets/brand_mark.dart';
 import '../library/library_section.dart';
 import '../player/mini_player.dart';
+import '../settings/settings_providers.dart';
 
 /// Responsive chrome around the four top-level branches (Home / Library /
 /// Search / Settings).
@@ -50,29 +53,29 @@ class AppShell extends ConsumerWidget {
 
     if (isWide) {
       // On desktop the library categories live directly in the rail (their tab
-      // bar collapses), so the sidebar drives the active section.
+      // bar collapses), so the sidebar drives the active section. The rail can
+      // be collapsed to icons only, and lists the user's playlists when open.
       final section = ref.watch(librarySectionProvider);
+      final collapsed = ref.watch(sidebarCollapsedProvider).value ?? false;
+      final playlists = collapsed
+          ? const <JellyfinItem>[]
+          : (ref.watch(playlistsProvider).value ?? const <JellyfinItem>[]);
+
       return Scaffold(
         body: Row(
           children: [
             Container(
-              width: 212,
+              width: collapsed ? 68 : 212,
               color: context.colors.navSurface,
-              padding: const EdgeInsets.fromLTRB(14, 20, 14, 16),
+              padding: EdgeInsets.fromLTRB(
+                  collapsed ? 8 : 14, 20, collapsed ? 8 : 14, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(12, 4, 12, 22),
-                    child: Row(
-                      children: [
-                        BrandMark(size: 26),
-                        SizedBox(width: 11),
-                        Text('JellyMusic',
-                            style: TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
+                  _RailHeader(
+                    collapsed: collapsed,
+                    onToggle: () =>
+                        ref.read(sidebarCollapsedProvider.notifier).toggle(),
                   ),
                   Expanded(
                     child: SingleChildScrollView(
@@ -80,6 +83,7 @@ class AppShell extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _RailItem(
+                            collapsed: collapsed,
                             label: l.navHome,
                             icon: index == _homeBranch
                                 ? Icons.home_rounded
@@ -87,9 +91,13 @@ class AppShell extends ConsumerWidget {
                             selected: index == _homeBranch,
                             onTap: () => _go(_homeBranch),
                           ),
-                          _RailSectionLabel(l.libraryTitle),
+                          if (collapsed)
+                            const SizedBox(height: 8)
+                          else
+                            _RailSectionLabel(l.libraryTitle),
                           for (final s in LibrarySection.values)
                             _RailItem(
+                              collapsed: collapsed,
                               label: s.label(l),
                               icon: (index == _libraryBranch && section == s)
                                   ? s.icon
@@ -105,6 +113,7 @@ class AppShell extends ConsumerWidget {
                             ),
                           const SizedBox(height: 12),
                           _RailItem(
+                            collapsed: collapsed,
                             label: l.navSearch,
                             icon: index == _searchBranch
                                 ? Icons.search_rounded
@@ -112,12 +121,25 @@ class AppShell extends ConsumerWidget {
                             selected: index == _searchBranch,
                             onTap: () => _go(_searchBranch),
                           ),
+                          if (playlists.isNotEmpty) ...[
+                            _RailSectionLabel(l.tabPlaylists),
+                            for (final p in playlists)
+                              _RailItem(
+                                collapsed: false,
+                                label: p.name,
+                                icon: Icons.queue_music_outlined,
+                                selected: false,
+                                onTap: () =>
+                                    context.go('/library/playlist/${p.id}'),
+                              ),
+                          ],
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   _RailItem(
+                    collapsed: collapsed,
                     label: l.settingsTitle,
                     icon: Icons.settings_rounded,
                     selected: index == _settingsBranch,
@@ -177,19 +199,69 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-/// A single rail destination: rounded pill, accent-tinted when active.
+/// The rail's brand header with a collapse / expand toggle. Lays the brand and
+/// chevron in a row when open, and stacks them when collapsed to icons.
+class _RailHeader extends StatelessWidget {
+  const _RailHeader({required this.collapsed, required this.onToggle});
+
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final toggle = IconButton(
+      tooltip: MaterialLocalizations.of(context).drawerLabel,
+      iconSize: 20,
+      icon: Icon(collapsed
+          ? Icons.chevron_right_rounded
+          : Icons.chevron_left_rounded),
+      onPressed: onToggle,
+    );
+    if (collapsed) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(
+          children: [
+            const BrandMark(size: 26),
+            const SizedBox(height: 10),
+            toggle,
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 2, 20),
+      child: Row(
+        children: [
+          const BrandMark(size: 26),
+          const SizedBox(width: 11),
+          const Expanded(
+            child: Text('JellyMusic',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          ),
+          toggle,
+        ],
+      ),
+    );
+  }
+}
+
+/// A single rail destination: rounded pill, accent-tinted when active. In
+/// [collapsed] mode it shrinks to a centred icon with the label as a tooltip.
 class _RailItem extends StatelessWidget {
   const _RailItem({
     required this.label,
     required this.icon,
     required this.selected,
     required this.onTap,
+    this.collapsed = false,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -205,16 +277,30 @@ class _RailItem extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Row(
-              children: [
-                Icon(icon, size: 22, color: color),
-                const SizedBox(width: 14),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500, color: color)),
-              ],
+          child: Tooltip(
+            message: collapsed ? label : '',
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: collapsed ? 10 : 14, vertical: 10),
+              child: collapsed
+                  ? Icon(icon, size: 22, color: color)
+                  : Row(
+                      children: [
+                        Icon(icon, size: 22, color: color),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: color),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ),

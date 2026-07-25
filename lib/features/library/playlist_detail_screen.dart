@@ -121,6 +121,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
           final coverUrl = playlist != null
               ? service.primaryImageUrl(playlist, size: 640)
               : null;
+          final isFav = ref.watch(favoriteProvider(playlistId)).value ?? false;
 
           return CustomScrollView(
             slivers: [
@@ -182,6 +183,21 @@ class PlaylistDetailScreen extends ConsumerWidget {
                               },
                         icon: const Icon(Icons.shuffle_rounded, size: 18),
                         label: Text(l.shuffleAction),
+                      ),
+                      HeroRoundAction(
+                        icon: isFav
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: isFav ? context.colors.accent : null,
+                        tooltip: isFav ? l.songUnfavorite : l.songFavorite,
+                        onTap: () {
+                          ref
+                              .read(favoriteProvider(playlistId).notifier)
+                              .toggle();
+                          // Refresh the playlists list so the favourites
+                          // filter reflects the change immediately.
+                          ref.invalidate(playlistsProvider);
+                        },
                       ),
                     ],
                   ),

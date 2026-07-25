@@ -90,6 +90,28 @@ class GaplessController extends AsyncNotifier<bool> {
   }
 }
 
+/// Whether the desktop sidebar is collapsed to icons only. Persisted.
+const _kSidebarCollapsed = 'settings.sidebarCollapsed';
+
+final sidebarCollapsedProvider =
+    AsyncNotifierProvider<SidebarCollapsedController, bool>(
+        SidebarCollapsedController.new);
+
+class SidebarCollapsedController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kSidebarCollapsed) ?? false;
+  }
+
+  Future<void> toggle() async {
+    final next = !(state.value ?? false);
+    state = AsyncData(next);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kSidebarCollapsed, next);
+  }
+}
+
 /// Fade length in seconds (0 = off). Applies to the running player at once.
 final fadeSecondsProvider =
     AsyncNotifierProvider<FadeController, int>(FadeController.new);
