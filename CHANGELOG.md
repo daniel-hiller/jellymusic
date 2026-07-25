@@ -3,6 +3,32 @@
 All notable changes to JellyMusic, newest first. This project follows
 [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+**Added**
+- Standalone queue screen, reachable from the mini player (no longer buried in
+  Now Playing) — reorder, remove and tap-to-jump.
+- Desktop system tray with transport controls (play/pause, previous/next, show
+  window, quit) and the current track shown in the menu.
+- Native splash screen (Android/iOS) on the Nocturne background.
+- In-tab search for albums, artists and songs; album search also matches by
+  artist, not just the album name.
+- Mouse-wheel volume control on the volume sliders.
+
+**Changed**
+- Desktop: the library categories (albums / artists / songs / playlists /
+  genres / favourites) now live directly in the sidebar instead of in-page tabs.
+- The A–Z rail now filters server-side by letter — scrolling stays within the
+  chosen letter — with proper hover and active states.
+- Redesigned the About screen (hero panel, version pill, grouped links).
+- Localised the library sort menu, the sort/favourites filter tooltips and the
+  fullscreen tooltip.
+
+**Fixed**
+- Album track lists now show the per-track artist on compilations and guest
+  features; more robust artist fallback in the player, OS notification and
+  search results.
+
 ## v1.0.0 — 2026-07-25
 
 Initial public release. Available on **Linux, Windows, macOS, Android and web**
