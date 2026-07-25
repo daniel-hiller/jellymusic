@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/jelly_colors.dart';
 import '../../l10n/app_localizations.dart';
@@ -127,10 +128,16 @@ class MiniPlayer extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             const FavoriteButton(size: 22),
+                            IconButton(
+                              tooltip: l.queueTab,
+                              icon: const Icon(
+                                  Icons.queue_music_rounded, size: 22),
+                              onPressed: () => context.push('/queue'),
+                            ),
                             const CastButton(showLabel: true),
                             const VolumeControl(width: 110),
                             IconButton(
-                              tooltip: 'Vollbild',
+                              tooltip: l.fullscreenTooltip,
                               icon: const Icon(
                                   Icons.open_in_full_rounded, size: 20),
                               onPressed: onTap,
@@ -143,6 +150,11 @@ class MiniPlayer extends ConsumerWidget {
                 : Row(
                     children: [
                       Expanded(child: trackInfo),
+                      IconButton(
+                        tooltip: l.queueTab,
+                        icon: const Icon(Icons.queue_music_rounded, size: 24),
+                        onPressed: () => context.push('/queue'),
+                      ),
                       const CastButton(),
                       IconButton(
                         icon: Icon(
