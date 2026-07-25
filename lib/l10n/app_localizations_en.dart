@@ -467,6 +467,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutGithub => 'Source on GitHub';
 
   @override
+  String get aboutWhatsNew => 'What\'s new';
+
+  @override
+  String get aboutReportIssue => 'Report an issue';
+
+  @override
+  String get aboutBuiltWith => 'Built with Flutter';
+
+  @override
+  String get trayPlay => 'Play';
+
+  @override
+  String get trayPause => 'Pause';
+
+  @override
+  String get trayNext => 'Next track';
+
+  @override
+  String get trayPrevious => 'Previous track';
+
+  @override
+  String get trayShow => 'Show JellyMusic';
+
+  @override
+  String get trayQuit => 'Quit';
+
+  @override
+  String get trayNothingPlaying => 'Nothing playing';
+
+  @override
+  String get fullscreenTooltip => 'Fullscreen';
+
+  @override
+  String get sortAscending => 'Ascending';
+
+  @override
+  String get sortDescending => 'Descending';
+
+  @override
+  String get filterShowAll => 'Show all';
+
+  @override
+  String get filterFavoritesOnly => 'Favourites only';
+
+  @override
+  String get sortName => 'Name';
+
+  @override
+  String get sortArtist => 'Artist';
+
+  @override
+  String get sortYear => 'Year';
+
+  @override
+  String get sortDateAdded => 'Recently added';
+
+  @override
+  String get sortRandom => 'Random';
+
+  @override
+  String get sortAlbum => 'Album';
+
+  @override
+  String get sortTitle => 'Title';
+
+  @override
   String aboutCopyright(Object author) {
     return '© $author';
   }

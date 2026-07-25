@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// One selectable sort criterion: a human [label] and the Jellyfin
 /// `sortBy` [field] it maps to.
 @immutable
@@ -65,31 +67,32 @@ class LibraryQuery {
       sortField, descending, favoritesOnly, startLetter, searchTerm);
 }
 
-/// Sort menus per browsable type.
+/// Sort menus per browsable type. Built with [AppLocalizations] so the labels
+/// follow the app language (the `field` values are the fixed Jellyfin keys).
 abstract final class SortOptions {
-  static const albums = [
-    SortOption('Name', 'SortName'),
-    SortOption('Künstler', 'AlbumArtist'),
-    SortOption('Jahr', 'ProductionYear'),
-    SortOption('Zuletzt hinzugefügt', 'DateCreated'),
-    SortOption('Zufällig', 'Random'),
-  ];
+  static List<SortOption> albums(AppLocalizations l) => [
+        SortOption(l.sortName, 'SortName'),
+        SortOption(l.sortArtist, 'AlbumArtist'),
+        SortOption(l.sortYear, 'ProductionYear'),
+        SortOption(l.sortDateAdded, 'DateCreated'),
+        SortOption(l.sortRandom, 'Random'),
+      ];
 
-  static const artists = [
-    SortOption('Name', 'SortName'),
-    SortOption('Zufällig', 'Random'),
-  ];
+  static List<SortOption> artists(AppLocalizations l) => [
+        SortOption(l.sortName, 'SortName'),
+        SortOption(l.sortRandom, 'Random'),
+      ];
 
-  static const songs = [
-    SortOption('Titel', 'SortName'),
-    SortOption('Album', 'Album'),
-    SortOption('Künstler', 'Artist'),
-    SortOption('Zuletzt hinzugefügt', 'DateCreated'),
-    SortOption('Zufällig', 'Random'),
-  ];
+  static List<SortOption> songs(AppLocalizations l) => [
+        SortOption(l.sortTitle, 'SortName'),
+        SortOption(l.sortAlbum, 'Album'),
+        SortOption(l.sortArtist, 'Artist'),
+        SortOption(l.sortDateAdded, 'DateCreated'),
+        SortOption(l.sortRandom, 'Random'),
+      ];
 
-  static const playlists = [
-    SortOption('Name', 'SortName'),
-    SortOption('Zuletzt hinzugefügt', 'DateCreated'),
-  ];
+  static List<SortOption> playlists(AppLocalizations l) => [
+        SortOption(l.sortName, 'SortName'),
+        SortOption(l.sortDateAdded, 'DateCreated'),
+      ];
 }

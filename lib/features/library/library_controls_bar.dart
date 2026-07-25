@@ -19,7 +19,10 @@ class LibraryControlsBar extends ConsumerWidget {
   });
 
   final StateProvider<LibraryQuery> queryProvider;
-  final List<SortOption> sortOptions;
+
+  /// Builds the sort menu for the current language. A builder (not a plain
+  /// list) so the labels re-localise when the app language changes.
+  final List<SortOption> Function(AppLocalizations) sortOptions;
 
   /// Whether to show the in-tab search field (the paged album/artist/song
   /// lists support it; the playlist tab doesn't).
@@ -27,11 +30,13 @@ class LibraryControlsBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final query = ref.watch(queryProvider);
     final notifier = ref.read(queryProvider.notifier);
-    final current = sortOptions.firstWhere(
+    final options = sortOptions(l);
+    final current = options.firstWhere(
       (o) => o.field == query.sortField,
-      orElse: () => sortOptions.first,
+      orElse: () => options.first,
     );
     final isRandom = current.field == 'Random';
 
@@ -44,7 +49,7 @@ class LibraryControlsBar extends ConsumerWidget {
             onSelected: (field) => notifier.state =
                 query.copyWith(sortField: field, clearLetter: true),
             itemBuilder: (context) => [
-              for (final o in sortOptions)
+              for (final o in options)
                 PopupMenuItem(value: o.field, child: Text(o.label)),
             ],
             child: Row(
@@ -60,7 +65,7 @@ class LibraryControlsBar extends ConsumerWidget {
           ),
           if (!isRandom)
             IconButton(
-              tooltip: query.descending ? 'Absteigend' : 'Aufsteigend',
+              tooltip: query.descending ? l.sortDescending : l.sortAscending,
               icon: Icon(
                 query.descending
                     ? Icons.arrow_downward_rounded
@@ -78,8 +83,8 @@ class LibraryControlsBar extends ConsumerWidget {
             const Spacer(),
           IconButton(
             tooltip: query.favoritesOnly
-                ? 'Alle anzeigen'
-                : 'Nur Favoriten',
+                ? l.filterShowAll
+                : l.filterFavoritesOnly,
             icon: Icon(
               query.favoritesOnly
                   ? Icons.favorite_rounded

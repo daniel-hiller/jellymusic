@@ -950,6 +950,138 @@ abstract class AppLocalizations {
   /// **'Quellcode auf GitHub'**
   String get aboutGithub;
 
+  /// No description provided for @aboutWhatsNew.
+  ///
+  /// In de, this message translates to:
+  /// **'Was ist neu'**
+  String get aboutWhatsNew;
+
+  /// No description provided for @aboutReportIssue.
+  ///
+  /// In de, this message translates to:
+  /// **'Problem melden'**
+  String get aboutReportIssue;
+
+  /// No description provided for @aboutBuiltWith.
+  ///
+  /// In de, this message translates to:
+  /// **'Mit Flutter gebaut'**
+  String get aboutBuiltWith;
+
+  /// No description provided for @trayPlay.
+  ///
+  /// In de, this message translates to:
+  /// **'Wiedergabe'**
+  String get trayPlay;
+
+  /// No description provided for @trayPause.
+  ///
+  /// In de, this message translates to:
+  /// **'Pause'**
+  String get trayPause;
+
+  /// No description provided for @trayNext.
+  ///
+  /// In de, this message translates to:
+  /// **'Nächster Titel'**
+  String get trayNext;
+
+  /// No description provided for @trayPrevious.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorheriger Titel'**
+  String get trayPrevious;
+
+  /// No description provided for @trayShow.
+  ///
+  /// In de, this message translates to:
+  /// **'JellyMusic anzeigen'**
+  String get trayShow;
+
+  /// No description provided for @trayQuit.
+  ///
+  /// In de, this message translates to:
+  /// **'Beenden'**
+  String get trayQuit;
+
+  /// No description provided for @trayNothingPlaying.
+  ///
+  /// In de, this message translates to:
+  /// **'Nichts läuft gerade'**
+  String get trayNothingPlaying;
+
+  /// No description provided for @fullscreenTooltip.
+  ///
+  /// In de, this message translates to:
+  /// **'Vollbild'**
+  String get fullscreenTooltip;
+
+  /// No description provided for @sortAscending.
+  ///
+  /// In de, this message translates to:
+  /// **'Aufsteigend'**
+  String get sortAscending;
+
+  /// No description provided for @sortDescending.
+  ///
+  /// In de, this message translates to:
+  /// **'Absteigend'**
+  String get sortDescending;
+
+  /// No description provided for @filterShowAll.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle anzeigen'**
+  String get filterShowAll;
+
+  /// No description provided for @filterFavoritesOnly.
+  ///
+  /// In de, this message translates to:
+  /// **'Nur Favoriten'**
+  String get filterFavoritesOnly;
+
+  /// No description provided for @sortName.
+  ///
+  /// In de, this message translates to:
+  /// **'Name'**
+  String get sortName;
+
+  /// No description provided for @sortArtist.
+  ///
+  /// In de, this message translates to:
+  /// **'Künstler'**
+  String get sortArtist;
+
+  /// No description provided for @sortYear.
+  ///
+  /// In de, this message translates to:
+  /// **'Jahr'**
+  String get sortYear;
+
+  /// No description provided for @sortDateAdded.
+  ///
+  /// In de, this message translates to:
+  /// **'Zuletzt hinzugefügt'**
+  String get sortDateAdded;
+
+  /// No description provided for @sortRandom.
+  ///
+  /// In de, this message translates to:
+  /// **'Zufällig'**
+  String get sortRandom;
+
+  /// No description provided for @sortAlbum.
+  ///
+  /// In de, this message translates to:
+  /// **'Album'**
+  String get sortAlbum;
+
+  /// No description provided for @sortTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Titel'**
+  String get sortTitle;
+
   /// No description provided for @aboutCopyright.
   ///
   /// In de, this message translates to:

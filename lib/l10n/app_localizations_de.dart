@@ -468,6 +468,72 @@ class AppLocalizationsDe extends AppLocalizations {
   String get aboutGithub => 'Quellcode auf GitHub';
 
   @override
+  String get aboutWhatsNew => 'Was ist neu';
+
+  @override
+  String get aboutReportIssue => 'Problem melden';
+
+  @override
+  String get aboutBuiltWith => 'Mit Flutter gebaut';
+
+  @override
+  String get trayPlay => 'Wiedergabe';
+
+  @override
+  String get trayPause => 'Pause';
+
+  @override
+  String get trayNext => 'Nächster Titel';
+
+  @override
+  String get trayPrevious => 'Vorheriger Titel';
+
+  @override
+  String get trayShow => 'JellyMusic anzeigen';
+
+  @override
+  String get trayQuit => 'Beenden';
+
+  @override
+  String get trayNothingPlaying => 'Nichts läuft gerade';
+
+  @override
+  String get fullscreenTooltip => 'Vollbild';
+
+  @override
+  String get sortAscending => 'Aufsteigend';
+
+  @override
+  String get sortDescending => 'Absteigend';
+
+  @override
+  String get filterShowAll => 'Alle anzeigen';
+
+  @override
+  String get filterFavoritesOnly => 'Nur Favoriten';
+
+  @override
+  String get sortName => 'Name';
+
+  @override
+  String get sortArtist => 'Künstler';
+
+  @override
+  String get sortYear => 'Jahr';
+
+  @override
+  String get sortDateAdded => 'Zuletzt hinzugefügt';
+
+  @override
+  String get sortRandom => 'Zufällig';
+
+  @override
+  String get sortAlbum => 'Album';
+
+  @override
+  String get sortTitle => 'Titel';
+
+  @override
   String aboutCopyright(Object author) {
     return '© $author';
   }
