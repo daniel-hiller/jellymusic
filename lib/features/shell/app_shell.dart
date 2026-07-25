@@ -57,9 +57,11 @@ class AppShell extends ConsumerWidget {
       // be collapsed to icons only, and lists the user's playlists when open.
       final section = ref.watch(librarySectionProvider);
       final collapsed = ref.watch(sidebarCollapsedProvider).value ?? false;
+      // Only the user's favourite playlists get a quick link in the rail.
       final playlists = collapsed
           ? const <JellyfinItem>[]
-          : (ref.watch(playlistsProvider).value ?? const <JellyfinItem>[]);
+          : (ref.watch(favoritePlaylistsProvider).value ??
+              const <JellyfinItem>[]);
 
       return Scaffold(
         body: Row(
@@ -91,6 +93,15 @@ class AppShell extends ConsumerWidget {
                             selected: index == _homeBranch,
                             onTap: () => _go(_homeBranch),
                           ),
+                          _RailItem(
+                            collapsed: collapsed,
+                            label: l.navSearch,
+                            icon: index == _searchBranch
+                                ? Icons.search_rounded
+                                : Icons.search_outlined,
+                            selected: index == _searchBranch,
+                            onTap: () => _go(_searchBranch),
+                          ),
                           if (collapsed)
                             const SizedBox(height: 8)
                           else
@@ -111,16 +122,6 @@ class AppShell extends ConsumerWidget {
                                 _go(_libraryBranch);
                               },
                             ),
-                          const SizedBox(height: 12),
-                          _RailItem(
-                            collapsed: collapsed,
-                            label: l.navSearch,
-                            icon: index == _searchBranch
-                                ? Icons.search_rounded
-                                : Icons.search_outlined,
-                            selected: index == _searchBranch,
-                            onTap: () => _go(_searchBranch),
-                          ),
                           if (playlists.isNotEmpty) ...[
                             _RailSectionLabel(l.tabPlaylists),
                             for (final p in playlists)

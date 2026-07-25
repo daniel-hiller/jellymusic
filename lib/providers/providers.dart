@@ -220,6 +220,15 @@ final playlistsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   return res.items;
 });
 
+/// Favourite playlists only — used for the quick list in the desktop sidebar.
+final favoritePlaylistsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
+  ref.watch(_sessionUserId);
+  final res = await ref
+      .watch(musicRepositoryProvider)
+      .playlists(favoritesOnly: true);
+  return res.items;
+});
+
 /// A playlist's item + its tracks.
 final playlistDetailProvider =
     FutureProvider.family<PlaylistDetail, String>((ref, playlistId) async {

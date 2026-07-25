@@ -194,9 +194,10 @@ class PlaylistDetailScreen extends ConsumerWidget {
                           ref
                               .read(favoriteProvider(playlistId).notifier)
                               .toggle();
-                          // Refresh the playlists list so the favourites
-                          // filter reflects the change immediately.
+                          // Refresh the playlist lists so the favourites filter
+                          // and the sidebar reflect the change immediately.
                           ref.invalidate(playlistsProvider);
+                          ref.invalidate(favoritePlaylistsProvider);
                         },
                       ),
                     ],
