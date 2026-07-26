@@ -1,10 +1,9 @@
 import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../core/audio/audio_player_handler.dart';
 import '../data/jellyfin/auth_repository.dart';
+import '../data/jellyfin/resilient_secure_storage.dart';
 import '../data/jellyfin/jellyfin_service.dart';
 import '../data/jellyfin/music_repository.dart';
 import '../data/models/server_session.dart';
@@ -12,7 +11,7 @@ import '../features/library/library_query.dart';
 
 // ─── Infrastructure (overridden in main.dart with real instances) ────
 
-final secureStorageProvider = Provider<FlutterSecureStorage>(
+final secureStorageProvider = Provider<ResilientSecureStorage>(
   (_) => throw UnimplementedError('override in main()'),
 );
 

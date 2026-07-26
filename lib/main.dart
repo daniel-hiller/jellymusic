@@ -13,6 +13,7 @@ import 'core/desktop/desktop_tray.dart';
 import 'core/audio/audio_player_handler.dart';
 import 'data/cache/http_cache.dart';
 import 'data/jellyfin/auth_repository.dart';
+import 'data/jellyfin/resilient_secure_storage.dart';
 import 'data/jellyfin/jellyfin_service.dart';
 import 'features/settings/settings_providers.dart';
 import 'providers/providers.dart';
@@ -40,8 +41,10 @@ Future<void> main() async {
   }
 
   // flutter_secure_storage 10 encrypts on Android by default; the old
-  // `encryptedSharedPreferences` option was removed.
-  const storage = FlutterSecureStorage();
+  // `encryptedSharedPreferences` option was removed. Wrapped so a locked/absent
+  // OS keyring (common on Linux desktops that don't auto-unlock it) falls back
+  // to shared_preferences instead of crashing at launch.
+  final storage = ResilientSecureStorage(const FlutterSecureStorage());
 
   // Stable per-install device id (Jellyfin tracks sessions by it).
   final deviceId = await AuthRepository.ensureDeviceId(storage);

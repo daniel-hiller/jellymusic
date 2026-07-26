@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:dart_jellyfin/dart_jellyfin.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/server_session.dart';
 import 'jellyfin_service.dart';
+import 'resilient_secure_storage.dart';
 
 /// Handles login / logout and persists **multiple** accounts (users across
 /// servers) so the user can switch between them. One is "active" at a time;
@@ -14,7 +14,7 @@ class AuthRepository {
   AuthRepository(this._service, this._storage);
 
   final JellyfinService _service;
-  final FlutterSecureStorage _storage;
+  final ResilientSecureStorage _storage;
 
   static const _kSessions = 'jellymusic.sessions';
   static const _kActiveKey = 'jellymusic.activeKey';
@@ -23,7 +23,7 @@ class AuthRepository {
 
   /// A stable per-install device id. Generated once, then reused so
   /// Jellyfin keeps recognising this client's sessions.
-  static Future<String> ensureDeviceId(FlutterSecureStorage storage) async {
+  static Future<String> ensureDeviceId(ResilientSecureStorage storage) async {
     final existing = await storage.read(key: _kDeviceId);
     if (existing != null && existing.isNotEmpty) return existing;
     final id = const Uuid().v4();
