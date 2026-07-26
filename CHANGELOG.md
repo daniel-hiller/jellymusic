@@ -6,8 +6,10 @@ All notable changes to JellyMusic, newest first. This project follows
 ## v1.1.2 — 2026-07-26
 
 **Fixed**
-- Desktop: JellyMusic now runs as a **single instance** — launching it again
-  focuses the already-open window instead of starting a second copy.
+- Desktop (Linux / Windows / macOS): JellyMusic now runs as a **single
+  instance** — launching it again focuses the already-open window instead of
+  starting a second copy. (macOS was already single-instance via Launch
+  Services; Linux and Windows now match.)
 
 ## v1.1.1 — 2026-07-26
 
