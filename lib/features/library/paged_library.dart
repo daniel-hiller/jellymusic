@@ -64,8 +64,10 @@ class PagedLibrary extends Notifier<PagedState> {
 
   @override
   PagedState build() {
-    // Depend on the query + account so a change rebuilds and reloads page 0.
+    // Depend on the query, the chosen library and the account so a change
+    // rebuilds and reloads page 0.
     ref.watch(_queryProvider);
+    ref.watch(activeMusicViewProvider);
     ref.watch(authControllerProvider);
     _busy = false;
     Future.microtask(_loadFirst);
@@ -76,6 +78,7 @@ class PagedLibrary extends Notifier<PagedState> {
     final repo = ref.read(musicRepositoryProvider);
     final q = ref.read(_queryProvider);
     final sortBy = [q.sortField];
+    final parentId = ref.read(activeMusicViewProvider).value;
     return switch (arg) {
       LibraryKind.albums => repo.albums(
           startIndex: start,
@@ -84,7 +87,8 @@ class PagedLibrary extends Notifier<PagedState> {
           descending: q.descending,
           favoritesOnly: q.favoritesOnly,
           startLetter: q.startLetter,
-          searchTerm: q.searchTerm),
+          searchTerm: q.searchTerm,
+          parentId: parentId),
       LibraryKind.artists => repo.artists(
           startIndex: start,
           limit: _pageSize,
@@ -92,7 +96,8 @@ class PagedLibrary extends Notifier<PagedState> {
           descending: q.descending,
           favoritesOnly: q.favoritesOnly,
           startLetter: q.startLetter,
-          searchTerm: q.searchTerm),
+          searchTerm: q.searchTerm,
+          parentId: parentId),
       LibraryKind.songs => repo.songs(
           startIndex: start,
           limit: _pageSize,
@@ -100,7 +105,8 @@ class PagedLibrary extends Notifier<PagedState> {
           descending: q.descending,
           favoritesOnly: q.favoritesOnly,
           startLetter: q.startLetter,
-          searchTerm: q.searchTerm),
+          searchTerm: q.searchTerm,
+          parentId: parentId),
     };
   }
 

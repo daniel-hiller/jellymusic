@@ -1219,6 +1219,162 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Hell'**
   String get themeLight;
+
+  /// No description provided for @sortPlayCount.
+  ///
+  /// In de, this message translates to:
+  /// **'Wiedergaben'**
+  String get sortPlayCount;
+
+  /// No description provided for @filterTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Filter'**
+  String get filterTitle;
+
+  /// No description provided for @filterPlayed.
+  ///
+  /// In de, this message translates to:
+  /// **'Gespielt'**
+  String get filterPlayed;
+
+  /// No description provided for @filterUnplayed.
+  ///
+  /// In de, this message translates to:
+  /// **'Ungespielt'**
+  String get filterUnplayed;
+
+  /// No description provided for @filterGenre.
+  ///
+  /// In de, this message translates to:
+  /// **'Genre'**
+  String get filterGenre;
+
+  /// No description provided for @filterDecade.
+  ///
+  /// In de, this message translates to:
+  /// **'Jahrzehnt'**
+  String get filterDecade;
+
+  /// No description provided for @filterReset.
+  ///
+  /// In de, this message translates to:
+  /// **'Zurücksetzen'**
+  String get filterReset;
+
+  /// No description provided for @libraryPickerTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Bibliothek'**
+  String get libraryPickerTitle;
+
+  /// No description provided for @libraryAll.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle Bibliotheken'**
+  String get libraryAll;
+
+  /// No description provided for @discNumber.
+  ///
+  /// In de, this message translates to:
+  /// **'CD {number}'**
+  String discNumber(Object number);
+
+  /// No description provided for @similarArtists.
+  ///
+  /// In de, this message translates to:
+  /// **'Ähnliche Künstler'**
+  String get similarArtists;
+
+  /// No description provided for @similarAlbums.
+  ///
+  /// In de, this message translates to:
+  /// **'Ähnliche Alben'**
+  String get similarAlbums;
+
+  /// No description provided for @genreArtists.
+  ///
+  /// In de, this message translates to:
+  /// **'Künstler'**
+  String get genreArtists;
+
+  /// No description provided for @genreTracks.
+  ///
+  /// In de, this message translates to:
+  /// **'Titel'**
+  String get genreTracks;
+
+  /// No description provided for @shelfSuggestions.
+  ///
+  /// In de, this message translates to:
+  /// **'Für dich'**
+  String get shelfSuggestions;
+
+  /// No description provided for @queueSaveAsPlaylist.
+  ///
+  /// In de, this message translates to:
+  /// **'Als Playlist speichern'**
+  String get queueSaveAsPlaylist;
+
+  /// No description provided for @queueClear.
+  ///
+  /// In de, this message translates to:
+  /// **'Warteschlange leeren'**
+  String get queueClear;
+
+  /// No description provided for @queueCleared.
+  ///
+  /// In de, this message translates to:
+  /// **'Warteschlange geleert'**
+  String get queueCleared;
+
+  /// No description provided for @queueSavedAs.
+  ///
+  /// In de, this message translates to:
+  /// **'Als „{name}“ gespeichert'**
+  String queueSavedAs(Object name);
+
+  /// No description provided for @songMarkPlayed.
+  ///
+  /// In de, this message translates to:
+  /// **'Als gespielt markieren'**
+  String get songMarkPlayed;
+
+  /// No description provided for @songMarkUnplayed.
+  ///
+  /// In de, this message translates to:
+  /// **'Als ungespielt markieren'**
+  String get songMarkUnplayed;
+
+  /// No description provided for @settingsNormalization.
+  ///
+  /// In de, this message translates to:
+  /// **'Lautstärke-Normalisierung'**
+  String get settingsNormalization;
+
+  /// No description provided for @settingsNormalizationSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Lautstärkeunterschiede zwischen Titeln ausgleichen'**
+  String get settingsNormalizationSubtitle;
+
+  /// No description provided for @normalizationOff.
+  ///
+  /// In de, this message translates to:
+  /// **'Aus'**
+  String get normalizationOff;
+
+  /// No description provided for @normalizationTrack.
+  ///
+  /// In de, this message translates to:
+  /// **'Pro Titel'**
+  String get normalizationTrack;
+
+  /// No description provided for @normalizationAlbum.
+  ///
+  /// In de, this message translates to:
+  /// **'Pro Album'**
+  String get normalizationAlbum;
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,7 @@
 import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/audio/audio_player_handler.dart';
 import '../data/jellyfin/auth_repository.dart';
 import '../data/jellyfin/resilient_secure_storage.dart';
@@ -116,45 +117,106 @@ final musicViewsProvider = FutureProvider<List<JellyfinView>>((ref) {
   return ref.watch(musicRepositoryProvider).musicViews();
 });
 
-final recentlyAddedProvider = FutureProvider<List<JellyfinItem>>((ref) {
-  ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).recentlyAdded();
+const _kActiveMusicView = 'library.activeMusicView';
+
+/// The music library everything browses; `null` means "all of them". Persisted
+/// across launches and dropped again when the saved library no longer exists
+/// (server switched, library removed).
+final activeMusicViewProvider =
+    AsyncNotifierProvider<ActiveMusicViewController, String?>(
+        ActiveMusicViewController.new);
+
+class ActiveMusicViewController extends AsyncNotifier<String?> {
+  @override
+  Future<String?> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kActiveMusicView);
+    if (saved == null) return null;
+    final views = await ref.watch(musicViewsProvider.future);
+    return views.any((v) => v.id == saved) ? saved : null;
+  }
+
+  /// Switch libraries; `null` selects all of them.
+  Future<void> select(String? viewId) async {
+    if (viewId == state.value) return;
+    state = AsyncData(viewId);
+    final prefs = await SharedPreferences.getInstance();
+    if (viewId == null) {
+      await prefs.remove(_kActiveMusicView);
+    } else {
+      await prefs.setString(_kActiveMusicView, viewId);
+    }
+  }
+}
+
+/// The id every list read scopes to — `null` while no library is chosen.
+/// Watching this makes a library switch reload the list.
+final _parentId = FutureProvider<String?>((ref) {
+  return ref.watch(activeMusicViewProvider.future);
 });
 
-final continueListeningProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final recentlyAddedProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).continueListening();
+  final parentId = await ref.watch(_parentId.future);
+  return ref.watch(musicRepositoryProvider).recentlyAdded(parentId: parentId);
 });
 
-final recentlyPlayedProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final continueListeningProvider =
+    FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).recentlyPlayedAlbums();
+  final parentId = await ref.watch(_parentId.future);
+  return ref
+      .watch(musicRepositoryProvider)
+      .continueListening(parentId: parentId);
+});
+
+final recentlyPlayedProvider = FutureProvider<List<JellyfinItem>>((ref) async {
+  ref.watch(_sessionUserId);
+  final parentId = await ref.watch(_parentId.future);
+  return ref
+      .watch(musicRepositoryProvider)
+      .recentlyPlayedAlbums(parentId: parentId);
 });
 
 final recentlyPlayedTracksProvider =
-    FutureProvider<List<JellyfinItem>>((ref) {
+    FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).recentlyPlayedTracks();
+  final parentId = await ref.watch(_parentId.future);
+  return ref
+      .watch(musicRepositoryProvider)
+      .recentlyPlayedTracks(parentId: parentId);
 });
 
-final mostPlayedProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final mostPlayedProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).mostPlayedAlbums();
+  final parentId = await ref.watch(_parentId.future);
+  return ref
+      .watch(musicRepositoryProvider)
+      .mostPlayedAlbums(parentId: parentId);
 });
 
-final favoriteAlbumsProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final favoriteAlbumsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).favoriteAlbums();
+  final parentId = await ref.watch(_parentId.future);
+  return ref.watch(musicRepositoryProvider).favoriteAlbums(parentId: parentId);
 });
 
-final favoriteArtistsProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final favoriteArtistsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).favoriteArtists();
+  final parentId = await ref.watch(_parentId.future);
+  return ref.watch(musicRepositoryProvider).favoriteArtists(parentId: parentId);
 });
 
-final randomAlbumsProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final randomAlbumsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).randomAlbums();
+  final parentId = await ref.watch(_parentId.future);
+  return ref.watch(musicRepositoryProvider).randomAlbums(parentId: parentId);
+});
+
+/// Server-curated picks for the "For you" shelf.
+final suggestionsProvider = FutureProvider<List<JellyfinItem>>((ref) {
+  ref.watch(_sessionUserId);
+  return ref.watch(musicRepositoryProvider).suggestions();
 });
 
 // ─── Per-tab browsing state (sort field, direction, favourites filter) ─
@@ -171,10 +233,12 @@ final playlistsQueryProvider = StateProvider<LibraryQuery>(
 final albumsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
   final q = ref.watch(albumsQueryProvider);
+  final parentId = await ref.watch(_parentId.future);
   final res = await ref.watch(musicRepositoryProvider).albums(
         sortBy: [q.sortField],
         descending: q.descending,
         favoritesOnly: q.favoritesOnly,
+        parentId: parentId,
       );
   return res.items;
 });
@@ -182,28 +246,41 @@ final albumsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
 final artistsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
   final q = ref.watch(artistsQueryProvider);
+  final parentId = await ref.watch(_parentId.future);
   final res = await ref.watch(musicRepositoryProvider).artists(
         sortBy: [q.sortField],
         descending: q.descending,
         favoritesOnly: q.favoritesOnly,
+        parentId: parentId,
       );
   return res.items;
 });
 
-final favoriteSongsProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final favoriteSongsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).favoriteSongs();
+  final parentId = await ref.watch(_parentId.future);
+  return ref.watch(musicRepositoryProvider).favoriteSongs(parentId: parentId);
 });
 
 final songsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
   final q = ref.watch(songsQueryProvider);
+  final parentId = await ref.watch(_parentId.future);
   final res = await ref.watch(musicRepositoryProvider).songs(
         sortBy: [q.sortField],
         descending: q.descending,
         favoritesOnly: q.favoritesOnly,
+        parentId: parentId,
       );
   return res.items;
+});
+
+/// The production years present in the library, newest first — the decade
+/// filter's source of truth.
+final libraryYearsProvider = FutureProvider<List<int>>((ref) async {
+  ref.watch(_sessionUserId);
+  final parentId = await ref.watch(_parentId.future);
+  return ref.watch(musicRepositoryProvider).years(parentId: parentId);
 });
 
 // ─── Playlists ───────────────────────────────────────────────────────
@@ -287,6 +364,18 @@ final artistTopTracksProvider =
   return ref.watch(musicRepositoryProvider).artistTopTracks(artistId);
 });
 
+/// Related artists / albums. Servers without the metadata to back these answer
+/// with an empty list, and the shelves hide themselves.
+final similarArtistsProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, artistId) {
+  return ref.watch(musicRepositoryProvider).similarArtists(artistId);
+});
+
+final similarAlbumsProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, albumId) {
+  return ref.watch(musicRepositoryProvider).similarAlbums(albumId);
+});
+
 /// An artist (or any item) by id — replaces the old hack of pulling the
 /// artist name out of the album-detail provider.
 final artistByIdProvider =
@@ -296,15 +385,30 @@ final artistByIdProvider =
 
 // ─── Genres ──────────────────────────────────────────────────────────
 
-final genresProvider = FutureProvider<List<JellyfinItem>>((ref) {
+final genresProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  return ref.watch(musicRepositoryProvider).genres();
+  final parentId = await ref.watch(_parentId.future);
+  final res =
+      await ref.watch(musicRepositoryProvider).genres(parentId: parentId);
+  return res.items;
 });
 
 final genreAlbumsProvider =
     FutureProvider.family<List<JellyfinItem>, String>((ref, genreId) {
   ref.watch(_sessionUserId);
   return ref.watch(musicRepositoryProvider).genreAlbums(genreId);
+});
+
+final genreArtistsProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, genreId) {
+  ref.watch(_sessionUserId);
+  return ref.watch(musicRepositoryProvider).genreArtists(genreId);
+});
+
+final genreTracksProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, genreId) {
+  ref.watch(_sessionUserId);
+  return ref.watch(musicRepositoryProvider).genreTracks(genreId);
 });
 
 /// Debounced-ish search: the UI sets the term, this fetches for it.

@@ -608,4 +608,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeLight => 'Light';
+
+  @override
+  String get sortPlayCount => 'Play count';
+
+  @override
+  String get filterTitle => 'Filter';
+
+  @override
+  String get filterPlayed => 'Played';
+
+  @override
+  String get filterUnplayed => 'Unplayed';
+
+  @override
+  String get filterGenre => 'Genre';
+
+  @override
+  String get filterDecade => 'Decade';
+
+  @override
+  String get filterReset => 'Reset';
+
+  @override
+  String get libraryPickerTitle => 'Library';
+
+  @override
+  String get libraryAll => 'All libraries';
+
+  @override
+  String discNumber(Object number) {
+    return 'Disc $number';
+  }
+
+  @override
+  String get similarArtists => 'Similar artists';
+
+  @override
+  String get similarAlbums => 'Similar albums';
+
+  @override
+  String get genreArtists => 'Artists';
+
+  @override
+  String get genreTracks => 'Tracks';
+
+  @override
+  String get shelfSuggestions => 'For you';
+
+  @override
+  String get queueSaveAsPlaylist => 'Save as playlist';
+
+  @override
+  String get queueClear => 'Clear queue';
+
+  @override
+  String get queueCleared => 'Queue cleared';
+
+  @override
+  String queueSavedAs(Object name) {
+    return 'Saved as “$name”';
+  }
+
+  @override
+  String get songMarkPlayed => 'Mark as played';
+
+  @override
+  String get songMarkUnplayed => 'Mark as unplayed';
+
+  @override
+  String get settingsNormalization => 'Volume normalisation';
+
+  @override
+  String get settingsNormalizationSubtitle =>
+      'Even out loudness differences between tracks';
+
+  @override
+  String get normalizationOff => 'Off';
+
+  @override
+  String get normalizationTrack => 'Track';
+
+  @override
+  String get normalizationAlbum => 'Album';
 }
