@@ -3,7 +3,7 @@
 All notable changes to JellyMusic, newest first. This project follows
 [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## v1.1.0 — 2026-07-26
 
 **Added**
 - Desktop: a Spotify-style mini player — shrinks the window into a small,
