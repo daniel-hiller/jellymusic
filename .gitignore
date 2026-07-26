@@ -135,6 +135,16 @@ app.*.symbols
 ARCHITECTURE.md
 PLAN.md
 
+# Flatpak build artefacts (assembled/produced locally and in CI)
+/flatpak/build-context/
+/flatpak-build/
+/flatpak-repo/
+/.flatpak-builder/
+*.flatpak
+
+# Windows installer output (Inno Setup)
+/windows/installer/Output/
+
 # AI Folders
 claude/
 copilot/

@@ -40,15 +40,51 @@ cleanup:
   - '*.la'
 
 modules:
-  # Slim, audio-only libmpv (no video output, no GPU stack → few build deps).
+  # libass (+ its fribidi dep) — mpv requires libass unconditionally.
+  - name: fribidi
+    buildsystem: meson
+    config-opts:
+      - -Ddocs=false
+      - -Dtests=false
+      - -Dbin=false
+    sources:
+      - type: git
+        url: https://github.com/fribidi/fribidi.git
+        tag: v1.0.16
+  - name: libass
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://github.com/libass/libass.git
+        tag: 0.17.3
+
+  # libplacebo is a mandatory mpv dependency from 0.36 on. We only need the
+  # library for mpv to link against (audio-only), so build it minimally with
+  # every GPU backend disabled.
+  - name: libplacebo
+    buildsystem: meson
+    config-opts:
+      - -Ddemos=false
+      - -Dtests=false
+      - -Dvulkan=disabled
+      - -Dopengl=disabled
+      - -Dd3d11=disabled
+      - -Dshaderc=disabled
+      - -Dglslang=disabled
+    sources:
+      - type: git
+        url: https://code.videolan.org/videolan/libplacebo.git
+        tag: v6.338.2
+
+  # Audio-only libmpv. mpv 0.38 targets ffmpeg 7 (what the 24.08 SDK ships);
+  # older mpv fails to compile against it. The video/GPU backends are off, but
+  # libplacebo/libass are still required to link, hence the modules above.
   - name: libmpv
     buildsystem: meson
     config-opts:
       - -Dlibmpv=true
       - -Dcplayer=false
       - -Dtests=false
-      - -Dmanpage-build=disabled
-      - -Dlibplacebo=disabled
       - -Dgl=disabled
       - -Dvulkan=disabled
       - -Dvaapi=disabled
@@ -61,7 +97,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/mpv-player/mpv.git
-        tag: v0.37.0
+        tag: v0.38.0
 
   - name: jellymusic
     buildsystem: simple
@@ -73,7 +109,7 @@ modules:
       - install -Dm644 io.github.daniel_hiller.jellymusic.metainfo.xml
         /app/share/metainfo/io.github.daniel_hiller.jellymusic.metainfo.xml
       - install -Dm644 icon.png
-        /app/share/icons/hicolor/256x256/apps/io.github.daniel_hiller.jellymusic.png
+        /app/share/icons/hicolor/512x512/apps/io.github.daniel_hiller.jellymusic.png
     sources:
       - type: dir
         path: build-context
