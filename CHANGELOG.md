@@ -3,6 +3,12 @@
 All notable changes to JellyMusic, newest first. This project follows
 [Semantic Versioning](https://semver.org).
 
+## v1.1.2 — 2026-07-26
+
+**Fixed**
+- Desktop: JellyMusic now runs as a **single instance** — launching it again
+  focuses the already-open window instead of starting a second copy.
+
 ## v1.1.1 — 2026-07-26
 
 **Added**
