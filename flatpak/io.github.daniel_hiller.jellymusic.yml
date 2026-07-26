@@ -40,6 +40,11 @@ add-extensions:
     version: '24.08'
     autodelete: false
 
+# The ffmpeg-full extension mounts at /app/lib/ffmpeg, so that directory must
+# exist in the built app (/app is read-only at runtime).
+cleanup-commands:
+  - mkdir -p /app/lib/ffmpeg
+
 cleanup:
   - /include
   - /lib/pkgconfig
