@@ -9,7 +9,7 @@
 # Building Flutter inside the image was avoided on purpose — there is no
 # published `cirruslabs/flutter:3.44.7` base image, and this keeps the container
 # on the exact same toolchain as every other build.
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 
 COPY build/web /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
