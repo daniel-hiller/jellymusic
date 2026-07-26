@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="flatpak/icon.png" alt="JellyMusic" width="128" />
+  <img src="packaging/jellymusic.png" alt="JellyMusic" width="128" />
 </p>
 
 <h1 align="center">JellyMusic</h1>
@@ -51,8 +51,8 @@ German/English localization.
 
 - **Desktop & mobile** — download from the
   [latest release](https://github.com/daniel-hiller/jellymusic/releases): a
-  Windows installer, a Linux Flatpak or tarball, a macOS app, and an Android
-  APK. iOS ships via the App Store.
+  Windows installer, Linux `.deb` / `.rpm` / tarball, a macOS app, and an
+  Android APK. iOS ships via the App Store.
 - **Web** — try the hosted [live demo](https://daniel-hiller.github.io/jellymusic/),
   or self-host it (below).
 
