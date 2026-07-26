@@ -16,6 +16,13 @@ runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 command: jellymusic
 
+# Install every module's libraries into /app/lib (not /app/lib64) so pkg-config
+# resolves them consistently — older flatpak-builder versions otherwise let
+# meson pick lib64, and mpv then can't find libplacebo.
+build-options:
+  config-opts:
+    - --libdir=lib
+
 finish-args:
   - --share=network
   - --share=ipc

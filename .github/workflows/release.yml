@@ -200,7 +200,7 @@ jobs:
             libgtk-3-dev libmpv-dev mpv \
             libsecret-1-dev libjsoncpp-dev \
             libayatana-appindicator3-dev \
-            flatpak flatpak-builder
+            flatpak
       - name: Resolve version from tag
         shell: bash
         run: |
@@ -217,18 +217,21 @@ jobs:
           cp flatpak/io.github.daniel_hiller.jellymusic.desktop flatpak/build-context/
           cp flatpak/io.github.daniel_hiller.jellymusic.metainfo.xml flatpak/build-context/
           cp flatpak/icon.png flatpak/build-context/icon.png
-      - name: Install Flatpak runtimes
+      - name: Install Flatpak builder + runtimes
         run: |
           flatpak remote-add --if-not-exists --user \
             flathub https://flathub.org/repo/flathub.flatpakrepo
+          # Use the org.flatpak.Builder flatpak (newer than distro
+          # flatpak-builder) so meson installs to /app/lib consistently.
           flatpak install --user -y flathub \
+            org.flatpak.Builder \
             org.freedesktop.Platform//24.08 \
             org.freedesktop.Sdk//24.08 \
             org.freedesktop.Platform.ffmpeg-full//24.08
       - name: Build Flatpak bundle
         run: |
-          flatpak-builder --user --disable-rofiles-fuse --force-clean \
-            --repo=flatpak-repo flatpak-build \
+          flatpak run org.flatpak.Builder --user --disable-rofiles-fuse \
+            --force-clean --repo=flatpak-repo flatpak-build \
             flatpak/io.github.daniel_hiller.jellymusic.yml
           flatpak build-bundle flatpak-repo \
             jellymusic-linux-$VERSION.flatpak \
