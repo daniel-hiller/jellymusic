@@ -11,7 +11,7 @@ All notable changes to JellyMusic, newest first. This project follows
   back to the full app. Available on X11, Windows and macOS (Wayland doesn't
   let a client control its own window geometry).
 - Desktop: optional *close to tray* and *minimise to tray* (two independent
-  settings under Settings → Playback → Desktop).
+  settings under Settings → Appearance → Desktop).
 - CI now also builds a Windows installer (`.exe`, Inno Setup) and a Linux
   Flatpak bundle, alongside the existing portable archives.
 - Collapsible desktop sidebar (icon-only mode), remembered across launches.
