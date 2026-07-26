@@ -1,0 +1,64 @@
+name: Deploy Pages
+
+# The public web demo tracks `main` and deploys on every push there. It is
+# deliberately NOT part of the release workflow: published releases run from a
+# tag, and the `github-pages` environment's protection rules only allow
+# branches — deploying from a tag is rejected ("not allowed to deploy … due to
+# environment protection rules"). Release tags carry the platform binaries; the
+# web demo follows main. Production still runs the container image instead.
+#
+# Pages isn't available on private free repos, so this is skipped until the repo
+# is public. One-time: Settings → Pages → Source = "GitHub Actions".
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy at a time; newer pushes supersede older runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.44.7"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.repository.private }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # need tags so git describe can resolve the version
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Resolve version from the latest tag
+        run: |
+          V="$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)"; V="${V#v}"
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+      - run: flutter pub get
+      # Project pages are served from /<repo>/, so the base href must match.
+      - run: >
+          flutter build web --release
+          --base-href /jellymusic/
+          --dart-define=APP_VERSION=$VERSION
+      - uses: actions/configure-pages@v6
+        with:
+          # Auto-enable Pages (with GitHub Actions as the source) so it doesn't
+          # need turning on by hand.
+          enablement: true
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/web
+      - id: deployment
+        uses: actions/deploy-pages@v5

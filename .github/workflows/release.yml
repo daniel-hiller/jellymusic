@@ -19,47 +19,8 @@ env:
   FLUTTER_VERSION: "3.44.7"
 
 jobs:
-  # Web → GitHub Pages (public demo). Production runs the container instead.
-  # Pages isn't available on private free repos, so this is skipped until the
-  # repo is public; it then runs automatically. Also needs (one-time):
-  # Settings → Pages → Source = "GitHub Actions".
-  pages:
-    runs-on: ubuntu-latest
-    if: ${{ !github.event.repository.private }}
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-      - name: Resolve version from tag
-        run: |
-          V="${{ github.event.release.tag_name }}"; V="${V#v}"
-          echo "VERSION=${V:-0.0.0-manual}" >> "$GITHUB_ENV"
-      - run: flutter pub get
-      # Project pages are served from /<repo>/, so the base href must match.
-      - run: >
-          flutter build web --release
-          --base-href /jellymusic/
-          --dart-define=APP_VERSION=$VERSION
-      - uses: actions/configure-pages@v6
-        with:
-          # Auto-enable Pages (with GitHub Actions as the source) so the first
-          # release doesn't need the site turned on by hand.
-          enablement: true
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: build/web
-      - id: deployment
-        if: github.event_name == 'release'
-        uses: actions/deploy-pages@v5
+  # NOTE: the GitHub Pages demo deploys from `main` in a separate workflow
+  # (pages.yml) — the github-pages environment blocks deploys from release tags.
 
   # Web production image → GitHub Container Registry. Build the web bundle with
   # the pinned toolchain, then package it into the runtime-only nginx image
