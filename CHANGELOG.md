@@ -5,6 +5,10 @@ All notable changes to JellyMusic, newest first. This project follows
 
 ## v1.1.2 — 2026-07-26
 
+**Changed**
+- Licensed under **AGPL-3.0** — anyone hosting a modified version over a network
+  must offer its source. A license link was added to the About screen.
+
 **Fixed**
 - Desktop (Linux / Windows / macOS): JellyMusic now runs as a **single
   instance** — launching it again focuses the already-open window instead of

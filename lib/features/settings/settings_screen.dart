@@ -402,6 +402,11 @@ class _AboutTab extends ConsumerWidget {
               label: l.aboutReportIssue,
               onTap: () => _open(AppInfo.issuesUrl),
             ),
+            _AboutLink(
+              icon: Icons.gavel_rounded,
+              label: l.aboutLicense,
+              onTap: () => _open(AppInfo.licenseUrl),
+            ),
           ],
         ),
         const SizedBox(height: 24),

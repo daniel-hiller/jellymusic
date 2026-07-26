@@ -163,7 +163,7 @@ if command -v fpm >/dev/null; then
   RPM_PATH="$OUT_DIR/jellymusic-${VERSION}.x86_64.rpm"
   rm -f "$RPM_PATH"
   fpm -s dir -t rpm -n jellymusic -v "$VERSION" -a x86_64 \
-    --license MIT \
+    --license "AGPL-3.0-or-later" \
     --maintainer "Daniel Hiller" \
     --url "https://github.com/daniel-hiller/jellymusic" \
     --description "A modern, music-first Jellyfin client" \

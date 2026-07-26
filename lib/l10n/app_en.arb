@@ -147,6 +147,7 @@
   "aboutGithub": "Source on GitHub",
   "aboutWhatsNew": "What's new",
   "aboutReportIssue": "Report an issue",
+  "aboutLicense": "License (AGPL-3.0)",
   "aboutBuiltWith": "Built with Flutter",
   "trayPlay": "Play",
   "trayPause": "Pause",

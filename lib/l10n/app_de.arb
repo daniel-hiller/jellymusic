@@ -158,6 +158,7 @@
   "aboutGithub": "Quellcode auf GitHub",
   "aboutWhatsNew": "Was ist neu",
   "aboutReportIssue": "Problem melden",
+  "aboutLicense": "Lizenz (AGPL-3.0)",
   "aboutBuiltWith": "Mit Flutter gebaut",
   "trayPlay": "Wiedergabe",
   "trayPause": "Pause",

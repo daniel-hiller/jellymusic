@@ -962,6 +962,12 @@ abstract class AppLocalizations {
   /// **'Problem melden'**
   String get aboutReportIssue;
 
+  /// No description provided for @aboutLicense.
+  ///
+  /// In de, this message translates to:
+  /// **'Lizenz (AGPL-3.0)'**
+  String get aboutLicense;
+
   /// No description provided for @aboutBuiltWith.
   ///
   /// In de, this message translates to:

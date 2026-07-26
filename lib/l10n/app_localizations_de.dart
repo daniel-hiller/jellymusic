@@ -474,6 +474,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get aboutReportIssue => 'Problem melden';
 
   @override
+  String get aboutLicense => 'Lizenz (AGPL-3.0)';
+
+  @override
   String get aboutBuiltWith => 'Mit Flutter gebaut';
 
   @override
