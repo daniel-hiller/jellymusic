@@ -1,0 +1,29 @@
+name: CI
+
+# Fast static checks on every push and pull request — independent of the
+# release build. Catches analyzer / l10n / syntax breakage before a release.
+on:
+  push:
+  pull_request:
+
+# Cancel superseded runs on the same ref (e.g. rapid pushes).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.44.7"
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
+      # Generate the localizations so the analyzer sees AppLocalizations.
+      - run: flutter gen-l10n
+      - run: flutter analyze
