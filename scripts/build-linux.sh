@@ -35,6 +35,7 @@ warn() { printf '\033[33m!!! %s\033[0m\n' "$1" >&2; }
 die()  { printf '\033[31mxxx %s\033[0m\n' "$1" >&2; exit 1; }
 
 APP=jellymusic
+APP_ID=com.jellymusic.app   # must match APPLICATION_ID (linux/CMakeLists.txt)
 VERSION="${VERSION:-0.0.0-dev}"
 step "Version: $VERSION"
 
@@ -61,11 +62,11 @@ Name=JellyMusic
 GenericName=Music Player
 Comment=A modern, music-first Jellyfin client
 Exec=jellymusic
-Icon=jellymusic
+Icon=com.jellymusic.app
 Type=Application
 Categories=AudioVideo;Audio;Player;
 Keywords=music;jellyfin;audio;player;stream;
-StartupWMClass=jellymusic
+StartupWMClass=com.jellymusic.app
 Terminal=false
 EOF
 )
@@ -79,9 +80,9 @@ mkdir -p "$STAGE/opt/jellymusic" \
          "$STAGE/usr/share/icons/hicolor/512x512/apps"
 cp -a "$BUNDLE_DIR/." "$STAGE/opt/jellymusic/"
 ln -sf "/opt/jellymusic/jellymusic" "$STAGE/usr/bin/jellymusic"
-cp "$ICON_SRC" "$STAGE/usr/share/icons/hicolor/512x512/apps/jellymusic.png"
+cp "$ICON_SRC" "$STAGE/usr/share/icons/hicolor/512x512/apps/$APP_ID.png"
 printf '%s\n' "$DESKTOP_CONTENT" \
-  > "$STAGE/usr/share/applications/jellymusic.desktop"
+  > "$STAGE/usr/share/applications/$APP_ID.desktop"
 
 # --- tar.gz (portable, with a per-user install.sh) --------------------------
 step "Assembling tar.gz"
@@ -89,8 +90,8 @@ TGZ_STAGE="$(mktemp -d /tmp/jellymusic-tgz.XXXXXX)"
 trap 'rm -rf "$STAGE" "$TGZ_STAGE"' EXIT
 mkdir -p "$TGZ_STAGE/jellymusic-$VERSION"
 cp -a "$BUNDLE_DIR/." "$TGZ_STAGE/jellymusic-$VERSION/"
-cp "$ICON_SRC" "$TGZ_STAGE/jellymusic-$VERSION/jellymusic.png"
-printf '%s\n' "$DESKTOP_CONTENT" > "$TGZ_STAGE/jellymusic-$VERSION/jellymusic.desktop"
+cp "$ICON_SRC" "$TGZ_STAGE/jellymusic-$VERSION/$APP_ID.png"
+printf '%s\n' "$DESKTOP_CONTENT" > "$TGZ_STAGE/jellymusic-$VERSION/$APP_ID.desktop"
 cat > "$TGZ_STAGE/jellymusic-$VERSION/install.sh" <<'INSTALL_EOF'
 #!/usr/bin/env bash
 # Per-user install for the portable tarball.
@@ -102,10 +103,11 @@ mkdir -p "$TARGET" "$HOME/.local/bin" \
          "$HOME/.local/share/icons/hicolor/512x512/apps"
 cp -a "$HERE/." "$TARGET/"
 ln -sf "$TARGET/jellymusic" "$HOME/.local/bin/jellymusic"
-cp "$HERE/jellymusic.png" \
-   "$HOME/.local/share/icons/hicolor/512x512/apps/jellymusic.png"
-sed "s|^Exec=jellymusic$|Exec=$TARGET/jellymusic|" "$HERE/jellymusic.desktop" \
-   > "$HOME/.local/share/applications/jellymusic.desktop"
+cp "$HERE/com.jellymusic.app.png" \
+   "$HOME/.local/share/icons/hicolor/512x512/apps/com.jellymusic.app.png"
+sed "s|^Exec=jellymusic$|Exec=$TARGET/jellymusic|" \
+   "$HERE/com.jellymusic.app.desktop" \
+   > "$HOME/.local/share/applications/com.jellymusic.app.desktop"
 gtk-update-icon-cache -q -t -f "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 update-desktop-database -q "$HOME/.local/share/applications" 2>/dev/null || true
 echo "Installed JellyMusic to $TARGET (ensure ~/.local/bin is on PATH)."

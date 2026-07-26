@@ -3,6 +3,24 @@
 All notable changes to JellyMusic, newest first. This project follows
 [Semantic Versioning](https://semver.org).
 
+## v1.1.1 — 2026-07-26
+
+**Added**
+- Linux **`.deb` and `.rpm`** packages (built by CI, attached to each release).
+
+**Fixed**
+- Linux: no longer crashes at launch when the OS keyring is locked or missing —
+  secure storage falls back to `shared_preferences` (this affects desktops that
+  don't auto-unlock the login keyring on sign-in, e.g. COSMIC).
+- Linux: the packaged desktop entry and icon now use the application id
+  (`com.jellymusic.app`), so the running window maps to the right icon and no
+  duplicate menu entry appears.
+
+**Removed**
+- The Flatpak build — bundling every system library the plugins hard-link
+  (libmpv, libsecret, the whole Ayatana tray stack) proved too fragile to
+  maintain; the `.deb`/`.rpm` link the host's libraries instead.
+
 ## v1.1.0 — 2026-07-26
 
 **Added**
@@ -12,8 +30,8 @@ All notable changes to JellyMusic, newest first. This project follows
   let a client control its own window geometry).
 - Desktop: optional *close to tray* and *minimise to tray* (two independent
   settings under Settings → Appearance → Desktop).
-- CI now also builds a Windows installer (`.exe`, Inno Setup) and Linux `.deb`
-  and `.rpm` packages, alongside the existing portable archives.
+- CI now also builds a Windows installer (`.exe`, Inno Setup), alongside the
+  existing portable archives.
 - Collapsible desktop sidebar (icon-only mode), remembered across launches.
 - Your favourite playlists are listed directly in the desktop sidebar.
 - Favourite toggle on playlists, so the favourites filter applies to them too.
