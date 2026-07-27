@@ -248,6 +248,8 @@ class PlayerController {
       : _handler.moveQueueItem(oldIndex, newIndex);
   Future<void> removeQueueItem(int index) =>
       _remote != null ? Future.value() : _handler.removeQueueItemAt(index);
+  Future<void> clearQueue() =>
+      _remote != null ? Future.value() : _handler.clearQueue();
 
   /// Shuffle and repeat read their current value from whichever side is live —
   /// the remote reports both in its `PlayState`, so toggling stays in step.

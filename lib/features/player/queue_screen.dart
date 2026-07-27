@@ -27,9 +27,12 @@ class QueueScreen extends ConsumerWidget {
               icon: const Icon(Icons.shuffle_rounded),
               onPressed: controller.toggleShuffle,
             ),
+          const QueueActionsMenu(),
         ],
       ),
-      body: const SafeArea(child: QueueList()),
+      // The queue-wide actions live in the app bar here, so the list doesn't
+      // repeat them.
+      body: const SafeArea(child: QueueList(showActions: false)),
     );
   }
 }

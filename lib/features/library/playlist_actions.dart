@@ -13,10 +13,14 @@ import '../../widgets/skeleton.dart';
 
 /// Prompt for a name and create a playlist (optionally seeded with
 /// [seedItemIds]). Returns the new playlist id, or null if cancelled/failed.
+///
+/// [confirmation] replaces the text of the success snackbar for callers whose
+/// wording differs from "playlist created" — saving the play queue, say.
 Future<String?> showCreatePlaylistDialog(
   BuildContext context,
   WidgetRef ref, {
   List<String> seedItemIds = const [],
+  String Function(String name)? confirmation,
 }) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -53,7 +57,8 @@ Future<String?> showCreatePlaylistDialog(
         .read(musicRepositoryProvider)
         .createPlaylist(name, itemIds: seedItemIds);
     ref.invalidate(playlistsProvider);
-    messenger.showSnackBar(SnackBar(content: Text(l.playlistCreated(name))));
+    messenger.showSnackBar(SnackBar(
+        content: Text(confirmation?.call(name) ?? l.playlistCreated(name))));
     return id;
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
