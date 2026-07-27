@@ -70,16 +70,18 @@ class _NowPlayingMobileState extends ConsumerState<NowPlayingMobile> {
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: PlayerBackground(
-        artUrl: art,
-        child: AnimatedSlide(
-          // Follow the finger 1:1 while dragging, snap back smoothly on release.
-          duration:
-              _dragging ? Duration.zero : const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          offset: Offset(0, _dismiss),
-          child: Opacity(
-            opacity: (1 - _dismiss * 0.6).clamp(0.0, 1.0),
+      // The drag moves the tinted background along with everything on it.
+      // Sliding only the contents leaves the backdrop hanging in place until
+      // the route is popped, which it then catches up with in one jump.
+      body: AnimatedSlide(
+        // Follow the finger 1:1 while dragging, snap back smoothly on release.
+        duration: _dragging ? Duration.zero : const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        offset: Offset(0, _dismiss),
+        child: Opacity(
+          opacity: (1 - _dismiss * 0.6).clamp(0.0, 1.0),
+          child: PlayerBackground(
+            artUrl: art,
             child: SafeArea(
               child: Column(
                 children: [
@@ -92,7 +94,6 @@ class _NowPlayingMobileState extends ConsumerState<NowPlayingMobile> {
                     onVerticalDragUpdate: (d) => _onDragUpdate(d, height),
                     onVerticalDragEnd: _onDragEnd,
                     child: PlayerTopBar(
-                      album: item.album,
                       actions: const [
                         CastButton(),
                         SleepTimerButton(),
@@ -137,6 +138,17 @@ class _NowPlayingMobileState extends ConsumerState<NowPlayingMobile> {
                           style: TextStyle(
                               color: context.colors.accentBright, fontSize: 16),
                         ),
+                        if ((item.album ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            item.album!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: context.colors.textSecondary,
+                                fontSize: 13),
+                          ),
+                        ],
                       ],
                     ),
                   ),
