@@ -11,6 +11,7 @@ import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 import '../player/radio_actions.dart';
 import 'detail_hero.dart';
+import 'paged_library.dart';
 
 /// A playlist: header (cover + play/shuffle) over its tracks, plus edit
 /// actions (add songs, rename, delete) in the app bar.
@@ -65,7 +66,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
     try {
       await ref.read(musicRepositoryProvider).renamePlaylist(playlistId, name);
       ref.invalidate(playlistDetailProvider(playlistId));
-      ref.invalidate(playlistsProvider);
+      invalidatePlaylists(ref);
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
     }
@@ -96,7 +97,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
     if (confirm != true) return;
     try {
       await ref.read(musicRepositoryProvider).deletePlaylist(playlistId);
-      ref.invalidate(playlistsProvider);
+      invalidatePlaylists(ref);
       router.pop();
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
@@ -196,8 +197,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
                               .toggle();
                           // Refresh the playlist lists so the favourites filter
                           // and the sidebar reflect the change immediately.
-                          ref.invalidate(playlistsProvider);
-                          ref.invalidate(favoritePlaylistsProvider);
+                          invalidatePlaylists(ref);
                         },
                       ),
                     ],

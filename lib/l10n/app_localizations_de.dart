@@ -629,6 +629,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get filterDecade => 'Jahrzehnt';
 
   @override
+  String filterDecadeLabel(Object decade) {
+    return '${decade}er';
+  }
+
+  @override
   String get filterReset => 'Zurücksetzen';
 
   @override

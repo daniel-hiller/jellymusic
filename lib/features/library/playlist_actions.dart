@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
+import 'paged_library.dart';
 
 /// Reusable playlist actions: create a playlist and add tracks to one. Kept
 /// as top-level helpers so any screen (library, album, song tile) can call
@@ -52,7 +53,7 @@ Future<String?> showCreatePlaylistDialog(
     final id = await ref
         .read(musicRepositoryProvider)
         .createPlaylist(name, itemIds: seedItemIds);
-    ref.invalidate(playlistsProvider);
+    invalidatePlaylists(ref);
     messenger.showSnackBar(SnackBar(content: Text(l.playlistCreated(name))));
     return id;
   } catch (e) {
@@ -95,7 +96,7 @@ class _AddToPlaylistSheet extends ConsumerWidget {
           .read(musicRepositoryProvider)
           .addToPlaylist(playlistId, itemIds);
       ref.invalidate(playlistDetailProvider(playlistId));
-      ref.invalidate(playlistsProvider);
+      invalidatePlaylists(ref);
       messenger.showSnackBar(
         SnackBar(
             content: Text(itemIds.length == 1
