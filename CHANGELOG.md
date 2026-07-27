@@ -3,6 +3,51 @@
 All notable changes to JellyMusic, newest first. This project follows
 [Semantic Versioning](https://semver.org).
 
+## v1.2.0 — 2026-07-27
+
+**Added**
+- Filter any library list by **played state, genre and decade**, next to the
+  existing favourites filter. Each tab offers only what the server can answer
+  for it — genres, for instance, take neither.
+- **Library switcher** for servers with more than one music library; everything
+  from the home shelves to search scopes to the one you pick. Servers with a
+  single music library see no change.
+- Playlists and genres are now **paged like the other tabs**, with sort, in-tab
+  search and the A–Z rail.
+- Sort albums and songs by **play count**.
+- Albums with several discs are **grouped per disc**.
+- **Similar artists** on the artist page and **similar albums** on the album
+  page. Both stay hidden when the server has nothing to offer — this needs
+  metadata a plugin provides.
+- A genre now lists its **artists and tracks**, not only its albums.
+- **Reorder playlist tracks** by dragging.
+- A **"For you"** shelf on the home screen, from the server's own suggestions.
+- **Save the queue as a playlist**, and clear it.
+- **Mark tracks played or unplayed** from the song menu.
+- Optional **volume levelling** from Jellyfin's ReplayGain values, per track or
+  per album (Settings → Playback → Audio). Off by default.
+
+**Changed**
+- **Crossfade now really overlaps.** The setting used to fade one track out and
+  the next one in with a gap of silence between them; a second decoder now
+  carries the outgoing tail while the next track is already playing. Gapless
+  playback at a crossfade of zero is untouched and remains the default.
+- **Playback negotiates with the server through a device profile.** A quality
+  cap used to force a transcode on every track, even one already below the cap —
+  and files were transcoded even with no cap set at all. The server now decides
+  per track, so anything your client can play directly is streamed untouched.
+  What actually happened is reported back, so the Jellyfin dashboard shows
+  direct play and transcoding correctly.
+
+**Fixed**
+- The **Shuffle** button on albums, artists and playlists toggled shuffle
+  instead of switching it on — pressing it while shuffle was already active
+  turned it off and played in order.
+- Skipping to the next track could **hang indefinitely** while a fade was
+  running, because a ramp cancelled by a competing one never completed.
+- A transport button pressed during a track change no longer answers with a
+  multi-second ramp.
+
 ## v1.1.2 — 2026-07-26
 
 **Changed**
