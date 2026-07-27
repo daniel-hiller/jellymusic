@@ -2,11 +2,13 @@ import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import 'library_query.dart';
 
-/// The three infinitely-scrolling library lists.
-enum LibraryKind { albums, artists, songs }
+/// The infinitely-scrolling library lists — every browsable category goes
+/// through the same paging, search and A–Z machinery.
+enum LibraryKind { albums, artists, songs, playlists, genres }
 
 /// One page-window of a library list.
 class PagedState {
@@ -38,7 +40,7 @@ class PagedState {
 
 /// Lazily loads a library list in pages, appending as the user scrolls.
 /// Resets and reloads the first page whenever the tab's [LibraryQuery] (sort /
-/// direction / favourites filter) or the active account changes.
+/// direction / filters) or the active account changes.
 final pagedLibraryProvider = NotifierProvider.autoDispose
     .family<PagedLibrary, PagedState, LibraryKind>(PagedLibrary.new);
 
@@ -48,7 +50,42 @@ StateProvider<LibraryQuery> queryProviderFor(LibraryKind kind) => switch (kind) 
       LibraryKind.albums => albumsQueryProvider,
       LibraryKind.artists => artistsQueryProvider,
       LibraryKind.songs => songsQueryProvider,
+      LibraryKind.playlists => playlistsQueryProvider,
+      LibraryKind.genres => genresQueryProvider,
     };
+
+/// Reload every list that shows playlists. Called after a playlist is created,
+/// renamed, emptied or deleted so the change is visible right away.
+void invalidatePlaylists(WidgetRef ref) {
+  ref.invalidate(playlistsProvider);
+  ref.invalidate(favoritePlaylistsProvider);
+  ref.invalidate(pagedLibraryProvider(LibraryKind.playlists));
+}
+
+extension LibraryKindMeta on LibraryKind {
+  /// The sort menu this list offers.
+  List<SortOption> Function(AppLocalizations) get sortOptions => switch (this) {
+        LibraryKind.albums => SortOptions.albums,
+        LibraryKind.artists => SortOptions.artists,
+        LibraryKind.songs => SortOptions.songs,
+        LibraryKind.playlists => SortOptions.playlists,
+        LibraryKind.genres => SortOptions.genres,
+      };
+
+  /// Genres come from `/MusicGenres`, which narrows by name and favourite
+  /// only — none of the item filters reach it.
+  bool get supportsPlayedFilter => this != LibraryKind.genres;
+
+  bool get supportsGenreFilter => this != LibraryKind.genres;
+
+  /// Only records and tracks carry a production year.
+  bool get supportsDecadeFilter =>
+      this == LibraryKind.albums || this == LibraryKind.songs;
+
+  /// Whether the controls bar offers the filter sheet at all.
+  bool get hasFilterSheet =>
+      supportsPlayedFilter || supportsGenreFilter || supportsDecadeFilter;
+}
 
 class PagedLibrary extends Notifier<PagedState> {
   // Riverpod 3 passes the family argument to the notifier's constructor
@@ -88,7 +125,10 @@ class PagedLibrary extends Notifier<PagedState> {
           favoritesOnly: q.favoritesOnly,
           startLetter: q.startLetter,
           searchTerm: q.searchTerm,
-          parentId: parentId),
+          parentId: parentId,
+          playedState: q.playedState,
+          genreIds: q.genreIds,
+          years: q.years),
       LibraryKind.artists => repo.artists(
           startIndex: start,
           limit: _pageSize,
@@ -97,8 +137,34 @@ class PagedLibrary extends Notifier<PagedState> {
           favoritesOnly: q.favoritesOnly,
           startLetter: q.startLetter,
           searchTerm: q.searchTerm,
-          parentId: parentId),
+          parentId: parentId,
+          playedState: q.playedState,
+          genreIds: q.genreIds),
       LibraryKind.songs => repo.songs(
+          startIndex: start,
+          limit: _pageSize,
+          sortBy: sortBy,
+          descending: q.descending,
+          favoritesOnly: q.favoritesOnly,
+          startLetter: q.startLetter,
+          searchTerm: q.searchTerm,
+          parentId: parentId,
+          playedState: q.playedState,
+          genreIds: q.genreIds,
+          years: q.years),
+      // Playlists live in their own library, so the music-view selection
+      // deliberately doesn't scope them.
+      LibraryKind.playlists => repo.playlists(
+          startIndex: start,
+          limit: _pageSize,
+          sortBy: sortBy,
+          descending: q.descending,
+          favoritesOnly: q.favoritesOnly,
+          startLetter: q.startLetter,
+          searchTerm: q.searchTerm,
+          playedState: q.playedState,
+          genreIds: q.genreIds),
+      LibraryKind.genres => repo.genres(
           startIndex: start,
           limit: _pageSize,
           sortBy: sortBy,

@@ -210,6 +210,8 @@
   "filterUnplayed": "Ungespielt",
   "filterGenre": "Genre",
   "filterDecade": "Jahrzehnt",
+  "filterDecadeLabel": "{decade}er",
+  "@filterDecadeLabel": { "placeholders": { "decade": {} } },
   "filterReset": "Zurücksetzen",
   "libraryPickerTitle": "Bibliothek",
   "libraryAll": "Alle Bibliotheken",

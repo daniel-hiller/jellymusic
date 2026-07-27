@@ -12,15 +12,15 @@ import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 import 'library_controls_bar.dart';
-import 'library_query.dart';
+import 'library_picker.dart';
 import 'library_section.dart';
 import 'paged_library.dart';
 import 'playlist_actions.dart';
 
-/// The library browser: Albums / Artists / Songs / Playlists / Genres /
-/// Favourites. Each browsable tab carries a [LibraryControlsBar] (sort +
-/// direction + favourites filter). Grids use a max-extent delegate so column
-/// count adapts from phone to desktop.
+/// The library browser: Albums / Artists / Songs / Playlists / Genres. Every
+/// tab pages through the same [LibraryKind] machinery and carries a
+/// [LibraryControlsBar] (sort + direction + search + filters). Grids use a
+/// max-extent delegate so column count adapts from phone to desktop.
 ///
 /// - Desktop (≥ 800 px): the sidebar drives which category shows, so this
 ///   renders just the active section (via [librarySectionProvider]).
@@ -44,6 +44,8 @@ class LibraryScreen extends ConsumerWidget {
 
     if (isWide) {
       final section = ref.watch(librarySectionProvider);
+      // The library switcher sits in the sidebar on desktop, so the app bar
+      // stays plain here.
       return Scaffold(
         appBar: AppBar(title: Text(section.label(l))),
         body: bodyFor(section),
@@ -55,6 +57,7 @@ class LibraryScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(l.libraryTitle),
+          actions: const [LibraryPicker(style: LibraryPickerStyle.appBar)],
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
@@ -80,10 +83,7 @@ class _AlbumsGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
-        LibraryControlsBar(
-          queryProvider: albumsQueryProvider,
-          sortOptions: SortOptions.albums,
-        ),
+        const LibraryControlsBar(kind: LibraryKind.albums),
         Expanded(
           child: _PagedItemGrid(
             kind: LibraryKind.albums,
@@ -102,10 +102,7 @@ class _ArtistsGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
-        LibraryControlsBar(
-          queryProvider: artistsQueryProvider,
-          sortOptions: SortOptions.artists,
-        ),
+        const LibraryControlsBar(kind: LibraryKind.artists),
         Expanded(
           child: _PagedItemGrid(
             kind: LibraryKind.artists,
@@ -127,10 +124,7 @@ class _SongsList extends ConsumerWidget {
     final controller = ref.watch(playerControllerProvider);
     return Column(
       children: [
-        LibraryControlsBar(
-          queryProvider: songsQueryProvider,
-          sortOptions: SortOptions.songs,
-        ),
+        const LibraryControlsBar(kind: LibraryKind.songs),
         Expanded(
           child: _PagedBody(
             kind: LibraryKind.songs,
@@ -249,34 +243,33 @@ class _PlaylistsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final playlists = ref.watch(playlistsProvider);
+    final paged = ref.watch(pagedLibraryProvider(LibraryKind.playlists));
     final service = ref.watch(jellyfinServiceProvider);
     return Column(
       children: [
-        LibraryControlsBar(
-          queryProvider: playlistsQueryProvider,
-          sortOptions: SortOptions.playlists,
-          searchable: false,
+        const LibraryControlsBar(kind: LibraryKind.playlists),
+        // Creating a playlist sits above the list instead of inside it, so it
+        // stays put while the list pages and stays reachable when a search or
+        // filter leaves nothing behind.
+        ListTile(
+          leading: CircleAvatar(
+            backgroundColor: context.colors.surfaceHigher,
+            child: Icon(Icons.add_rounded, color: context.colors.accent),
+          ),
+          title: Text(l.playlistNew),
+          onTap: () => showCreatePlaylistDialog(context, ref),
         ),
         Expanded(
-          child: playlists.when(
-            loading: () => const TileRowsSkeleton(),
-            error: (e, _) => Center(child: Text(l.errorWithMessage('$e'))),
-            data: (items) => ListView.builder(
-              itemCount: items.length + 1,
+          child: _PagedBody(
+            kind: LibraryKind.playlists,
+            state: paged,
+            emptyLabel: l.nothingFound,
+            skeleton: const TileRowsSkeleton(),
+            builder: (items, scrollController) => ListView.builder(
+              controller: scrollController,
+              itemCount: items.length,
               itemBuilder: (context, i) {
-                if (i == 0) {
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: context.colors.surfaceHigher,
-                      child:
-                          Icon(Icons.add_rounded, color: context.colors.accent),
-                    ),
-                    title: Text(l.playlistNew),
-                    onTap: () => showCreatePlaylistDialog(context, ref),
-                  );
-                }
-                final p = items[i - 1];
+                final p = items[i];
                 final count = p.childCount;
                 return ListTile(
                   leading: CoverArt(
@@ -308,29 +301,34 @@ class _GenresList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final genres = ref.watch(genresProvider);
-    return genres.when(
-      loading: () => const GenreGridSkeleton(),
-      error: (e, _) => Center(child: Text(l.errorWithMessage('$e'))),
-      data: (items) {
-        if (items.isEmpty) {
-          return Center(child: Text(l.genresEmpty));
-        }
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            mainAxisExtent: 104,
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
+    final paged = ref.watch(pagedLibraryProvider(LibraryKind.genres));
+    return Column(
+      children: [
+        const LibraryControlsBar(kind: LibraryKind.genres),
+        Expanded(
+          child: _PagedBody(
+            kind: LibraryKind.genres,
+            state: paged,
+            emptyLabel: l.genresEmpty,
+            skeleton: const GenreGridSkeleton(),
+            builder: (items, scrollController) => GridView.builder(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                mainAxisExtent: 104,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, i) => _GenreTile(
+                genre: items[i],
+                onTap: () => context.go('/library/genre/${items[i].id}'),
+              ),
+            ),
           ),
-          itemCount: items.length,
-          itemBuilder: (context, i) => _GenreTile(
-            genre: items[i],
-            onTap: () => context.go('/library/genre/${items[i].id}'),
-          ),
-        );
-      },
+        ),
+      ],
     );
   }
 }

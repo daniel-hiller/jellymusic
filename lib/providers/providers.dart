@@ -229,6 +229,8 @@ final songsQueryProvider = StateProvider<LibraryQuery>(
     (_) => const LibraryQuery(sortField: 'SortName'));
 final playlistsQueryProvider = StateProvider<LibraryQuery>(
     (_) => const LibraryQuery(sortField: 'SortName'));
+final genresQueryProvider = StateProvider<LibraryQuery>(
+    (_) => const LibraryQuery(sortField: 'SortName'));
 
 final albumsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
@@ -285,14 +287,12 @@ final libraryYearsProvider = FutureProvider<List<int>>((ref) async {
 
 // ─── Playlists ───────────────────────────────────────────────────────
 
+/// Every playlist, by name — the source for the "add to playlist" picker. The
+/// playlist *tab* pages through its own provider instead, so the picker stays
+/// complete no matter how the tab is sorted or filtered.
 final playlistsProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
-  final q = ref.watch(playlistsQueryProvider);
-  final res = await ref.watch(musicRepositoryProvider).playlists(
-        sortBy: [q.sortField],
-        descending: q.descending,
-        favoritesOnly: q.favoritesOnly,
-      );
+  final res = await ref.watch(musicRepositoryProvider).playlists();
   return res.items;
 });
 
@@ -385,6 +385,8 @@ final artistByIdProvider =
 
 // ─── Genres ──────────────────────────────────────────────────────────
 
+/// Every genre in the chosen library, by name — the genre filter's source. The
+/// genre *tab* pages through its own provider.
 final genresProvider = FutureProvider<List<JellyfinItem>>((ref) async {
   ref.watch(_sessionUserId);
   final parentId = await ref.watch(_parentId.future);
