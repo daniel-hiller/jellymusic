@@ -12,6 +12,7 @@ import '../../widgets/song_tile.dart';
 import '../player/radio_actions.dart';
 import 'detail_hero.dart';
 import 'paged_library.dart';
+import 'playlist_actions.dart';
 
 /// A playlist: header (cover + play/shuffle) over its tracks, plus edit
 /// actions (add songs, rename, delete) in the app bar.
@@ -36,72 +37,12 @@ class PlaylistDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _rename(
-      BuildContext context, WidgetRef ref, String currentName) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController(text: currentName);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.playlistRenameTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          onSubmitted: (v) => Navigator.of(context).pop(v.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(l.commonSave),
-          ),
-        ],
-      ),
-    );
-    if (name == null || name.isEmpty || name == currentName) return;
-    try {
-      await ref.read(musicRepositoryProvider).renamePlaylist(playlistId, name);
-      ref.invalidate(playlistDetailProvider(playlistId));
-      invalidatePlaylists(ref);
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
-    }
-  }
-
+  /// Delete the playlist and, once it's gone, leave the screen showing it.
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.playlistDeleteTitle),
-        content: Text(l.playlistDeleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l.commonCancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: context.colors.error),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-    try {
-      await ref.read(musicRepositoryProvider).deletePlaylist(playlistId);
-      invalidatePlaylists(ref);
-      router.pop();
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
-    }
+    final deleted =
+        await showDeletePlaylistDialog(context, ref, playlistId: playlistId);
+    if (deleted) router.pop();
   }
 
   @override
@@ -142,7 +83,10 @@ class PlaylistDetailScreen extends ConsumerWidget {
                   ),
                   PopupMenuButton<String>(
                     onSelected: (v) {
-                      if (v == 'rename') _rename(context, ref, name);
+                      if (v == 'rename') {
+                        showRenamePlaylistDialog(context, ref,
+                            playlistId: playlistId, currentName: name);
+                      }
                       if (v == 'delete') _delete(context, ref);
                     },
                     itemBuilder: (context) => [
