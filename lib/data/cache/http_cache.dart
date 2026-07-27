@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart' show IsolatedHive, IsolatedHiveX;
 import 'package:http_cache_hive_store/http_cache_hive_store.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -23,11 +24,31 @@ class HttpCache {
 
 /// Build the persistent cache store, falling back to in-memory if the
 /// platform store can't be opened.
+///
+/// The **isolated** store, deliberately: creating one sweeps the box for
+/// expired entries, and finding them means reading and decoding every response
+/// it holds. On the UI isolate that runs at launch, in front of the first
+/// request the app makes, and takes longer the more the library has been
+/// browsed — a start-up that gets slower the longer the app is used. Isolated,
+/// the sweep happens off the UI isolate and the app stays responsive through
+/// it. (On the web there are no isolates and this is the plain store.)
 Future<CacheStore> buildCacheStore() async {
   try {
-    if (kIsWeb) return HiveCacheStore(null);
+    // The web has neither isolates nor a name server; there the isolated store
+    // is the plain one under another name.
+    if (kIsWeb) return IsolatedHiveCacheStore(null);
+    // `initFlutter` is what hands the isolated Hive its isolate name server.
+    // Without one, every isolate that touches the box would spawn a Hive
+    // isolate of its own, and concurrent writers are how the file gets
+    // corrupted. It also settles on a default directory that we then override
+    // per box below, so the cache stays in application support instead of
+    // moving into the user's documents — and, on iOS, into their backup.
+    await IsolatedHive.initFlutter();
     final dir = await getApplicationSupportDirectory();
-    return HiveCacheStore('${dir.path}/jellymusic_http_cache');
+    return IsolatedHiveCacheStore(
+      '${dir.path}/jellymusic_http_cache',
+      hiveInterface: IsolatedHive,
+    );
   } catch (_) {
     return MemCacheStore();
   }
@@ -44,7 +65,12 @@ Dio buildCachingDio(
   final cacheOptions = CacheOptions(
     store: store,
     policy: CachePolicy.forceCache,
-    maxStale: const Duration(days: 7),
+    // How long an entry is kept around past its TTL to answer with when the
+    // server can't. Every browsed list is a stored response, so this is also
+    // what bounds the size of the store — and with it the cost of the sweep
+    // that opening it performs. A day covers a hiccup or a trip out of range;
+    // a week only bought a stale library nobody asked for.
+    maxStale: const Duration(days: 1),
     // Serve stale cache on network failures and server errors — but never on
     // auth failures (401/403), which must reach the app. (dio_cache_interceptor
     // 4 replaced `hitCacheOnErrorExcept` with these two explicit knobs.)

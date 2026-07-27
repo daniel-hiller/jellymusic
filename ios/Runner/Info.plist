@@ -26,6 +26,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- A Jellyfin server usually sits on the same network as the phone, and
+	     since iOS 14 reaching one needs the local-network permission. Without
+	     this string the system has nothing to show in the prompt, and every
+	     request to the server sits there until it times out — a launch that
+	     hangs for half a minute and then behaves as if the server were down. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>JellyMusic connects to your Jellyfin server. Allow access so it can reach a server on your own network.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

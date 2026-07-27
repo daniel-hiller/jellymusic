@@ -62,12 +62,26 @@ All notable changes to JellyMusic, newest first. This project follows
 - The crossfade could **skip the track that had just started**: position and
   duration arrive on separate streams, and during a track change their
   difference briefly read as "almost over", handing playback straight on.
-- **Long, frozen launch on iOS and iPadOS.** The libmpv/FFmpeg frameworks that
-  give Linux and Windows their audio backend were being linked into the iOS,
-  macOS and Android builds as well, where playback runs through the OS engine
-  and they are never loaded. The system still had to map and verify them before
-  the app could draw its first frame. They are now built only for the two
-  platforms that use them, which also shrinks every other build.
+- **Long, frozen launch on iOS and iPadOS.** Four things were in the way:
+  - The libmpv/FFmpeg frameworks that give Linux and Windows their audio
+    backend were linked into the iOS, macOS and Android builds as well, where
+    playback runs through the OS engine and they are never loaded. The system
+    still had to map and verify them before the app could draw. They are now
+    built only for the two platforms that use them, which also shrinks every
+    other build.
+  - The app drew nothing at all until the keyring, the caches and the media
+    session were ready — the OS launch image stayed up and nothing answered a
+    touch. Start-up now runs behind the splash instead of in front of it, and
+    its independent steps run at once rather than in turn.
+  - Opening the HTTP cache sweeps it for expired entries, which means reading
+    every response it holds. That ran on the UI thread at launch and grew with
+    every session, so the app got slower the more it had been used. The sweep
+    now happens off the UI thread, and entries are kept a day rather than a
+    week so there is less to sweep.
+  - iOS asks the user before an app may reach anything on their own network,
+    and the app never said what it wanted the access for. Requests to a
+    Jellyfin server on the same network sat waiting instead, then gave up as
+    if the server were down.
 
 ## v1.1.2 — 2026-07-26
 
