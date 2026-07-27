@@ -184,6 +184,11 @@ class DetailHero extends ConsumerWidget {
 
         return ClipRect(
           child: Stack(
+            // Without this the header would be laid out loosely, shrink to the
+            // width of its widest line and then sit against the leading edge —
+            // which reads as a header that is subtly off-centre, and only on
+            // the records whose title happens to be short.
+            fit: StackFit.passthrough,
             children: [
               glowBlob,
               Padding(
