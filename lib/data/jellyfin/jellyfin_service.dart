@@ -4,6 +4,37 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import '../../core/app_info.dart';
 import '../../core/util/item_x.dart';
 import '../cache/http_cache.dart';
+import 'device_profile.dart';
+
+/// What the server decided about one track: where to stream it from, how it
+/// is being delivered, and the session the delivery belongs to.
+class PlaybackNegotiation {
+  const PlaybackNegotiation({
+    required this.url,
+    required this.playMethod,
+    this.playSessionId,
+    this.mediaSourceId,
+  });
+
+  /// `PlayMethod` values as `/Sessions/Playing` expects them.
+  static const directPlay = 'DirectPlay';
+  static const directStream = 'DirectStream';
+  static const transcode = 'Transcode';
+
+  /// Signed URL to hand to the audio engine.
+  final String url;
+
+  /// One of [directPlay], [directStream] or [transcode] — reported back so the
+  /// server dashboard shows what a session is really costing it.
+  final String playMethod;
+
+  /// Session the server opened for this decision; threaded through playback
+  /// reporting so it can match the two up (and clean up a transcode job).
+  final String? playSessionId;
+
+  /// Which of the item's sources is playing.
+  final String? mediaSourceId;
+}
 
 /// Thin wrapper around [JellyfinClient] that owns the connection identity
 /// and centralises URL building (artwork + audio streams).
@@ -49,18 +80,33 @@ class JellyfinService {
   final JellyfinClient client;
   final CacheStore? _cacheStore;
 
-  /// Cap for streaming bitrate (bits/s); null lets the server decide / direct
-  /// play. Set from user settings; applied to newly started tracks.
-  int? maxStreamingBitrate;
+  int? _maxStreamingBitrate;
 
   /// Album-level normalisation gains keyed by album id, including the misses:
   /// a null value means "asked, the server has none", so an unscanned album
   /// isn't re-fetched once per track.
   final Map<String, double?> _albumGains = {};
 
+  /// Direct-play decisions keyed by item id. Only these are kept: their URL is
+  /// a plain static file link that stays valid, whereas a transcode decision
+  /// carries a play session the server would tear down on reuse.
+  final Map<String, PlaybackNegotiation> _directDecisions = {};
+
+  /// Cap for streaming bitrate (bits/s); null lets the server decide / direct
+  /// play. Set from user settings; applied to newly started tracks.
+  int? get maxStreamingBitrate => _maxStreamingBitrate;
+
+  set maxStreamingBitrate(int? value) {
+    if (value == _maxStreamingBitrate) return;
+    _maxStreamingBitrate = value;
+    // Every stored decision was made under the previous cap.
+    _directDecisions.clear();
+  }
+
   /// Drop all cached HTTP responses (after writes, on logout, on refresh).
   Future<void> clearCache() async {
     _albumGains.clear();
+    _directDecisions.clear();
     await _cacheStore?.clean();
   }
 
@@ -87,6 +133,7 @@ class JellyfinService {
 
   void logout() {
     _albumGains.clear();
+    _directDecisions.clear();
     client.disconnect();
   }
 
@@ -167,11 +214,91 @@ class JellyfinService {
     );
   }
 
+  // ─── Playback negotiation ──────────────────────────────────────────
+
+  /// How long to wait for a playback decision before giving up on it. Short
+  /// on purpose: this sits between tapping a song and hearing it, and the
+  /// fallback plays just as well.
+  static const _negotiationTimeout = Duration(seconds: 6);
+
+  /// Ask the server how to play [itemId], given what this platform can decode
+  /// and the bitrate the user allowed.
+  ///
+  /// The server answers with a media source that says whether the file can be
+  /// streamed as it is or has to be re-encoded, plus the URL for whichever it
+  /// picked. This replaces guessing at the universal endpoint, which had to
+  /// force a transcode whenever a cap was set because it couldn't know the
+  /// source was already below it.
+  ///
+  /// Never throws and never returns null: an old server, an error or a timeout
+  /// all fall back to [streamUrl], so a track never fails to play because the
+  /// negotiation did.
+  Future<PlaybackNegotiation> negotiatePlayback(String itemId) async {
+    final cached = _directDecisions[itemId];
+    if (cached != null) return cached;
+    try {
+      final info = await client.mediaInfo
+          .postedInfo(
+            itemId: itemId,
+            deviceProfile:
+                audioDeviceProfile(maxStreamingBitrate: _maxStreamingBitrate),
+            maxStreamingBitrate: _maxStreamingBitrate,
+          )
+          .timeout(_negotiationTimeout);
+      if (info.errorCode != null || info.mediaSources.isEmpty) {
+        return _fallbackPlayback(itemId);
+      }
+      final source = info.mediaSources.first;
+
+      if (source.supportsDirectPlay || source.supportsDirectStream) {
+        // No container in the path: ffprobe reports some files with a whole
+        // list of them ("mov,mp4,m4a,…"), which makes no sense as a file
+        // extension. The server types the response either way.
+        final decision = PlaybackNegotiation(
+          url: client.audio.directStreamUrl(itemId: itemId).$1,
+          playMethod: source.supportsDirectPlay
+              ? PlaybackNegotiation.directPlay
+              : PlaybackNegotiation.directStream,
+          playSessionId: info.playSessionId,
+          mediaSourceId: source.id,
+        );
+        _directDecisions[itemId] = decision;
+        return decision;
+      }
+
+      final transcodingUrl = source.transcodingUrl;
+      if (transcodingUrl != null) {
+        return PlaybackNegotiation(
+          // Relative to the server root, and already signed.
+          url: '${client.baseUrl}$transcodingUrl',
+          playMethod: PlaybackNegotiation.transcode,
+          playSessionId: info.playSessionId,
+          mediaSourceId: source.id,
+        );
+      }
+    } catch (_) {/* pre-negotiation server, offline, or too slow */}
+    return _fallbackPlayback(itemId);
+  }
+
+  PlaybackNegotiation _fallbackPlayback(String itemId) => PlaybackNegotiation(
+        url: streamUrl(itemId, maxStreamingBitrate: _maxStreamingBitrate),
+        // Without a decision from the server, all we know is what we asked the
+        // universal endpoint for: with a cap it re-encodes to MP3, without one
+        // it serves the containers we listed as they are.
+        playMethod: _maxStreamingBitrate == null
+            ? PlaybackNegotiation.directPlay
+            : PlaybackNegotiation.transcode,
+      );
+
   // ─── Stream URLs ───────────────────────────────────────────────────
 
   /// Signed streaming URL for a track. Uses the "universal" endpoint so
   /// the server transparently transcodes when the client can't direct-play
   /// the source container.
+  ///
+  /// This is the fallback behind [negotiatePlayback]: it needs no round trip
+  /// and plays on every server version, at the price of transcoding whenever
+  /// a bitrate cap is set.
   ///
   /// [maxStreamingBitrate] lets you cap bandwidth on mobile networks.
   String streamUrl(
