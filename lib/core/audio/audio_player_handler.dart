@@ -235,6 +235,11 @@ class AudioPlayerHandler extends BaseAudioHandler
   /// True from the moment the overlap starts until the tail has run out.
   bool _crossfading = false;
 
+  /// Whether the position stream has caught up with the track the player is on,
+  /// so the end of it can be acted on. Cleared at every track change and every
+  /// new queue; see [_maybeCrossfade].
+  bool _boundaryArmed = false;
+
   /// Head start for opening the tail: the second decoder has to connect, read
   /// and seek before the overlap begins, which took a good two seconds in
   /// testing against a remote server.
@@ -255,6 +260,20 @@ class AudioPlayerHandler extends BaseAudioHandler
     if (total <= fadeDuration * 2) return;
     final remaining = total - position;
     if (remaining <= Duration.zero) return;
+
+    // Position and duration reach us from two different streams, so a track
+    // change leaves a window where the position still belongs to the track
+    // that just ended while the duration already belongs to the new one. Read
+    // at face value that says "almost over", and the boundary would hand
+    // playback straight on again — skipping the track the listener just
+    // started. Wait for a position that is unambiguously this track's.
+    if (!_boundaryArmed) {
+      if (position <= fadeDuration ||
+          remaining > fadeDuration + _tailPreroll) {
+        _boundaryArmed = true;
+      }
+      return;
+    }
 
     if (remaining <= fadeDuration + _tailPreroll) unawaited(_prepareTail(total));
     if (remaining > fadeDuration) return;
@@ -315,6 +334,9 @@ class AudioPlayerHandler extends BaseAudioHandler
       // change is what surfaces the new MediaItem and scrobbles it.
       _fadeGain = 0;
       await _applyVolume();
+      // Last chance to notice an abort: moving the primary after a skip or a
+      // new queue took over would advance a track the listener just chose.
+      if (ramp != _tailRamp) return;
       await _player.seekToNext();
       // Ramp the arriving track up here rather than leaving it to
       // _setCurrentIndex, which stays quiet during an overlap: two identical
@@ -413,6 +435,7 @@ class AudioPlayerHandler extends BaseAudioHandler
     _negotiations.clear();
     _queueRevision++;
     // A new queue makes any overlap in progress meaningless.
+    _boundaryArmed = false;
     await _releaseTail();
 
     // Negotiate the one entry that starts playing now. The rest keep their
@@ -507,6 +530,7 @@ class AudioPlayerHandler extends BaseAudioHandler
     final next = q[index];
     if (mediaItem.value?.id == next.id) return;
     mediaItem.add(next);
+    _boundaryArmed = false;
     // Level the new track before bringing it up, so the fade ramps towards the
     // level it will keep instead of stepping to it afterwards.
     unawaited(_applyNormalization(next));
