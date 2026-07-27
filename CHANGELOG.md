@@ -33,11 +33,12 @@ All notable changes to JellyMusic, newest first. This project follows
   carries the outgoing tail while the next track is already playing. Gapless
   playback at a crossfade of zero is untouched and remains the default.
 - **Playback negotiates with the server through a device profile.** A quality
-  cap used to force a transcode on every track, even one already below the cap —
-  and files were transcoded even with no cap set at all. The server now decides
-  per track, so anything your client can play directly is streamed untouched.
-  What actually happened is reported back, so the Jellyfin dashboard shows
-  direct play and transcoding correctly.
+  cap used to force a transcode on the track you start, even one already below
+  the cap — and files were transcoded even with no cap set at all. The server
+  now decides, so anything your client can play directly is streamed untouched.
+  This applies to the track you start; the rest of a queue keeps streaming from
+  the universal endpoint. What actually happened is reported back either way, so
+  the Jellyfin dashboard shows direct play and transcoding correctly.
 
 **Fixed**
 - The **Shuffle** button on albums, artists and playlists toggled shuffle
@@ -47,6 +48,15 @@ All notable changes to JellyMusic, newest first. This project follows
   running, because a ramp cancelled by a competing one never completed.
 - A transport button pressed during a track change no longer answers with a
   multi-second ramp.
+- **A different track played than the one shown.** Fetching a better stream URL
+  for the next queue entry replaced its source mid-playback, which the desktop
+  backend does not support at a given position: the entry landed at the end of
+  the playlist and an unrelated track was dropped, leaving everything after it
+  shifted. The player and the Jellyfin dashboard agreed with each other and
+  both named the wrong song.
+- The crossfade could **skip the track that had just started**: position and
+  duration arrive on separate streams, and during a track change their
+  difference briefly read as "almost over", handing playback straight on.
 
 ## v1.1.2 — 2026-07-26
 

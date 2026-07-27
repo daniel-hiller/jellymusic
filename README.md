@@ -48,9 +48,10 @@ caching, and German/English localization.
   a system tray with transport controls, optional close/minimise-to-tray, and a
   Spotify-style mini-player window (X11/Windows/macOS).
 - **Playback** — gapless by default (libmpv prefetch on desktop), or a real
-  crossfade that overlaps the two tracks. The server decides between direct play
-  and transcoding from a per-platform device profile, so a file that already
-  fits your quality setting is streamed untouched. Optional volume levelling
+  crossfade that overlaps the two tracks. For the track you start, the server
+  decides between direct play and transcoding from a per-platform device
+  profile, so a file that already fits your quality setting is streamed
+  untouched. Optional volume levelling
   from Jellyfin's ReplayGain values, background playback + OS media controls,
   and scrobbling back to Jellyfin.
 - **Themes** — 12 palettes (6 dark / 6 light), switchable at runtime.
