@@ -53,7 +53,6 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   /// Fade envelope in 0..1, multiplied onto [_userVolume].
   double _fadeGain = 1.0;
-  Timer? _fadeTimer;
 
   /// Loudness-normalisation factor in 0..1 for the current track, the third
   /// stage of the volume chain. Like [_fadeGain] it scales [_userVolume]
@@ -63,10 +62,18 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   AudioNormalization _normalization = AudioNormalization.off;
 
-  /// How long to fade when a track ends or begins. Zero — the default — means
-  /// no fading at all, which is what makes gapless playback actually gapless.
+  Duration _fadeDuration = Duration.zero;
+
+  /// How long tracks overlap at a boundary. Zero — the default — means no
+  /// crossfade at all, which is what makes gapless playback actually gapless.
   /// Set from the saved preference (see `settings_providers.dart`).
-  Duration fadeDuration = Duration.zero;
+  Duration get fadeDuration => _fadeDuration;
+
+  set fadeDuration(Duration value) {
+    _fadeDuration = value;
+    // Back to gapless: give the second decoder back rather than keep it idle.
+    if (value <= Duration.zero) unawaited(_releaseTail(keepPlayer: false));
+  }
 
   /// Transport actions (play/pause/skip) use a short fade of their own: a
   /// multi-second ramp on a button press feels broken, not smooth.
@@ -166,8 +173,13 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   /// Ramp the fade envelope to [target] over [over]. Returns when the ramp is
   /// done, so callers can pause/skip on a silent player.
+  ///
+  /// Only one ramp owns the envelope at a time; starting another hands it over
+  /// and lets the older one return. It has to *return* rather than hang: a
+  /// track change and a manual skip can each start a ramp within the same
+  /// frame, and the transport waits on the one it started.
   Future<void> _fadeTo(double target, Duration over) async {
-    _fadeTimer?.cancel();
+    final ramp = ++_fadeRamp;
     if (over <= Duration.zero || _fadeGain == target) {
       _fadeGain = target;
       await _applyVolume();
@@ -177,38 +189,179 @@ class AudioPlayerHandler extends BaseAudioHandler
     const tick = Duration(milliseconds: 40);
     final steps = (over.inMilliseconds / tick.inMilliseconds).ceil();
     final from = _fadeGain;
-    final done = Completer<void>();
-    var step = 0;
-
-    _fadeTimer = Timer.periodic(tick, (timer) async {
-      step++;
-      _fadeGain = step >= steps
-          ? target
-          : from + (target - from) * (step / steps);
+    _fading = true;
+    for (var step = 1; step <= steps; step++) {
+      await Future<void>.delayed(tick);
+      if (ramp != _fadeRamp) return; // handed over; the new ramp owns _fading
+      _fadeGain =
+          step >= steps ? target : from + (target - from) * (step / steps);
       await _applyVolume();
-      if (step >= steps) {
-        timer.cancel();
-        if (!done.isCompleted) done.complete();
-      }
-    });
-    await done.future;
+    }
+    _fading = false;
   }
 
-  /// Watches the position so the tail of a track can fade out. Only armed
-  /// while [fadeDuration] is non-zero.
-  void _maybeFadeOutTail(Duration position) {
+  int _fadeRamp = 0;
+
+  /// True while a ramp is running, so the boundary code doesn't start a second.
+  bool _fading = false;
+
+  /// Let go of the envelope so it can be set directly.
+  void _cancelFade() {
+    _fadeRamp++;
+    _fading = false;
+  }
+
+  // ─── Crossfade ─────────────────────────────────────────────────────
+  //
+  // A crossfade needs two tracks audible at once, and one player can only
+  // decode one. The second player handles the *outgoing* tail rather than the
+  // incoming track: the queue — index, currentIndexStream, mediaItem and the
+  // Jellyfin reporting — belongs to the primary player alone, so the track
+  // that is arriving has to start there, exactly once and in order. The tail
+  // player re-opens the track that is leaving at the point the primary jumps
+  // away from, plays only the overlap, and never touches the queue. Any
+  // imprecision in it lands on audio that is already fading out, which is
+  // where it is least audible.
+
+  /// Second decoder, created on the first crossfade and kept while crossfading
+  /// stays on. It holds no queue state.
+  AudioPlayer? _tailPlayer;
+
+  /// Id of the track [_tailPlayer] is prepared for, or null when it holds
+  /// nothing usable. Claimed before the load so the position stream can't
+  /// start a second one.
+  String? _tailItemId;
+
+  /// True from the moment the overlap starts until the tail has run out.
+  bool _crossfading = false;
+
+  /// Head start for opening the tail: the second decoder has to connect, read
+  /// and seek before the overlap begins, which took a good two seconds in
+  /// testing against a remote server.
+  static const _tailPreroll = Duration(seconds: 8);
+
+  /// Watches the position to drive the boundary between two tracks. Only armed
+  /// while [fadeDuration] is non-zero; at zero this is a no-op and playback
+  /// stays gapless, which is the point of the default.
+  void _maybeCrossfade(Duration position) {
     final total = _player.duration;
     if (fadeDuration <= Duration.zero || total == null || !_player.playing) {
       return;
     }
     // Nothing to fade into after the last track — let it end at full level.
-    if (!_player.hasNext) return;
+    // Repeating one track would mean crossfading it with itself.
+    if (!_player.hasNext || _player.loopMode == LoopMode.one) return;
+    // An interlude shorter than two fades would be nothing but fade.
+    if (total <= fadeDuration * 2) return;
     final remaining = total - position;
-    if (remaining <= fadeDuration && remaining > Duration.zero) {
-      if (_fadeTimer?.isActive ?? false) return; // already ramping
-      if (_fadeGain < 1.0) return; // already faded
-      _fadeTo(0.0, remaining);
+    if (remaining <= Duration.zero) return;
+
+    if (remaining <= fadeDuration + _tailPreroll) unawaited(_prepareTail(total));
+    if (remaining > fadeDuration) return;
+
+    if (_crossfading) return;
+    if (_tailItemId != null && _tailItemId == mediaItem.value?.id) {
+      unawaited(_startCrossfade(remaining));
+      return;
     }
+    // The tail couldn't be prepared — a stream the server is still encoding
+    // has no length to seek into, for instance. Fall back to the one-sided
+    // fade: the outgoing track ducks out and the next one comes up after it.
+    if (_fading) return; // already ramping
+    if (_fadeGain < 1.0) return; // already faded
+    _fadeTo(0.0, remaining);
+  }
+
+  /// Open the current track on the tail player at the point the primary will
+  /// hand over, ready to be unpaused when the overlap starts.
+  Future<void> _prepareTail(Duration total) async {
+    final item = mediaItem.value;
+    if (item == null || _crossfading || _tailItemId == item.id) return;
+    _tailItemId = item.id; // claim first: this is driven by a position stream
+    final tail = _tailPlayer ??= AudioPlayer();
+    try {
+      final negotiated = await _negotiations[item.id];
+      final duration = await tail.setUrl(
+        negotiated?.url ?? item.extras!['url'] as String,
+        initialPosition: total - fadeDuration,
+      );
+      // A source with no length can't be seeked into, so the tail player would
+      // start it from the beginning — worse than not crossfading at all.
+      if (duration == null || duration <= Duration.zero) _tailItemId = null;
+    } catch (_) {
+      _tailItemId = null;
+    }
+  }
+
+  /// Overlap the two tracks: the tail player takes over what is left of the
+  /// current track and rides it down, while the primary jumps to the next
+  /// entry and comes up under it.
+  Future<void> _startCrossfade(Duration over) async {
+    final tail = _tailPlayer;
+    if (tail == null) return;
+    _crossfading = true;
+    // Setting up the overlap takes a few round trips to the decoders, and a
+    // skip or a new queue in that window has to stop it before it moves the
+    // primary off a track the user is no longer on.
+    final ramp = ++_tailRamp;
+    try {
+      // The tail continues at the level the primary is at, so the handover
+      // itself is inaudible.
+      await tail.setVolume(_userVolume * _normalizationGain);
+      if (ramp != _tailRamp) return;
+      await tail.play();
+      if (ramp != _tailRamp) return;
+      // Silence the primary before it moves, then let it advance: the index
+      // change is what surfaces the new MediaItem and scrobbles it.
+      _fadeGain = 0;
+      await _applyVolume();
+      await _player.seekToNext();
+      // Ramp the arriving track up here rather than leaving it to
+      // _setCurrentIndex, which stays quiet during an overlap: two identical
+      // tracks in a row don't change the MediaItem, and the primary would be
+      // left silent.
+      unawaited(_fadeTo(1.0, over));
+      await _rampTail(tail, over, ramp);
+    } catch (_) {
+      // Whatever went wrong, don't leave two players running.
+    }
+    // Unless something else already took the overlap away from us.
+    if (ramp == _tailRamp) await _releaseTail();
+  }
+
+  /// Ride the tail player's volume down to silence over [over].
+  ///
+  /// A plain loop rather than a periodic timer: it checks on every step
+  /// whether this overlap ([ramp]) is still the current one, so an abort ends
+  /// it instead of leaving the caller waiting on a ramp that never finishes.
+  Future<void> _rampTail(AudioPlayer tail, Duration over, int ramp) async {
+    const tick = Duration(milliseconds: 40);
+    final steps = (over.inMilliseconds / tick.inMilliseconds).ceil();
+    final from = tail.volume;
+    for (var step = 1; step <= steps; step++) {
+      await Future<void>.delayed(tick);
+      if (ramp != _tailRamp || !_crossfading) return;
+      await tail.setVolume(step >= steps ? 0 : from * (1 - step / steps));
+    }
+  }
+
+  int _tailRamp = 0;
+
+  /// End the overlap wherever it is — used both when it runs out on its own
+  /// and when a skip, seek, pause or new queue cuts it short.
+  ///
+  /// Keeps the second player around by default: it is reused for every
+  /// boundary, and only handed back when crossfading is switched off entirely.
+  Future<void> _releaseTail({bool keepPlayer = true}) async {
+    _tailRamp++;
+    _tailItemId = null;
+    _crossfading = false;
+    final tail = _tailPlayer;
+    if (tail == null) return;
+    if (!keepPlayer) _tailPlayer = null;
+    try {
+      await (keepPlayer ? tail.stop() : tail.dispose());
+    } catch (_) {}
   }
 
   Future<void> _init() async {
@@ -229,8 +382,8 @@ class AudioPlayerHandler extends BaseAudioHandler
 
     _player.playingStream.listen((_) => _broadcastState(null));
 
-    // Drives the end-of-track fade; a no-op while fadeDuration is zero.
-    _player.positionStream.listen(_maybeFadeOutTail);
+    // Drives the track boundary; a no-op while fadeDuration is zero.
+    _player.positionStream.listen(_maybeCrossfade);
 
     // End of queue: just_audio leaves `playing == true` at the completed
     // position, so the UI stays stuck on "pause". Reset to a paused, ready
@@ -259,6 +412,8 @@ class AudioPlayerHandler extends BaseAudioHandler
     queue.add(mediaItems);
     _negotiations.clear();
     _queueRevision++;
+    // A new queue makes any overlap in progress meaningless.
+    await _releaseTail();
 
     // Negotiate the one entry that starts playing now. The rest keep their
     // fallback URL until [_prepareNext] reaches them — a queue can be hundreds
@@ -320,8 +475,11 @@ class AudioPlayerHandler extends BaseAudioHandler
   /// same time as for the cast device. The queue and audio source are kept, so
   /// [resumeAt] can bring playback straight back.
   Future<void> releaseForCast() async {
-    _fadeTimer?.cancel();
+    _cancelFade();
     _fadeGain = 1.0;
+    // The whole point is to stop holding a stream open, so the second decoder
+    // goes too.
+    await _releaseTail(keepPlayer: false);
     await _player.stop();
   }
 
@@ -352,8 +510,13 @@ class AudioPlayerHandler extends BaseAudioHandler
     // Level the new track before bringing it up, so the fade ramps towards the
     // level it will keep instead of stepping to it afterwards.
     unawaited(_applyNormalization(next));
-    // The outgoing track faded itself out; bring the new one up.
-    if (fadeDuration > Duration.zero && _player.playing) {
+    // Bring the arriving track up under the outgoing one, which ducked out
+    // over the same span. During an overlap the ramp belongs to
+    // [_startCrossfade], which drives both sides of it together.
+    if (fadeDuration > Duration.zero &&
+        _player.playing &&
+        !_crossfading &&
+        !_transporting) {
       _fadeTo(1.0, fadeDuration);
     }
     _onTrackStarted(next);
@@ -519,7 +682,7 @@ class AudioPlayerHandler extends BaseAudioHandler
   @override
   Future<void> play() async {
     if (fadeDuration > Duration.zero) {
-      _fadeTimer?.cancel();
+      _cancelFade();
       _fadeGain = 0;
       await _applyVolume();
       await _player.play();
@@ -533,12 +696,19 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   @override
   Future<void> pause() async {
+    // Pausing in the middle of an overlap would leave the tail hanging, and
+    // resuming it in sync with the primary isn't worth the machinery: cut it
+    // and let the arriving track carry on alone.
+    await _releaseTail();
     if (fadeDuration > Duration.zero) await _fadeTo(0.0, _transportFade);
     await _player.pause();
   }
 
   @override
-  Future<void> seek(Duration position) => _player.seek(position);
+  Future<void> seek(Duration position) async {
+    await _releaseTail();
+    await _player.seek(position);
+  }
 
   @override
   Future<void> skipToNext() => _withTransportFade(_player.seekToNext);
@@ -548,14 +718,27 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   /// Duck out, run [action], come back up — so manual skips don't click.
   Future<void> _withTransportFade(Future<void> Function() action) async {
+    // A manual skip overrules an overlap that may be running towards the
+    // track the user just skipped past.
+    await _releaseTail();
     if (fadeDuration <= Duration.zero) return action();
-    await _fadeTo(0.0, _transportFade);
-    await action();
-    await _fadeTo(1.0, _transportFade);
+    _transporting = true;
+    try {
+      await _fadeTo(0.0, _transportFade);
+      await action();
+      await _fadeTo(1.0, _transportFade);
+    } finally {
+      _transporting = false;
+    }
   }
+
+  /// True while a transport action drives the envelope itself, so the track
+  /// change it causes doesn't answer a button press with a multi-second ramp.
+  bool _transporting = false;
 
   @override
   Future<void> skipToQueueItem(int index) async {
+    await _releaseTail();
     await _seekToIndex(index);
     // Tapping a queue entry means "play this": seeking alone stays silent when
     // the player is paused or parked at the end of the queue.
@@ -565,6 +748,7 @@ class AudioPlayerHandler extends BaseAudioHandler
   @override
   Future<void> stop() async {
     await _reportStopped();
+    await _releaseTail(keepPlayer: false);
     await _player.stop();
     _progressTimer?.cancel();
     await super.stop();
@@ -674,7 +858,8 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   Future<void> dispose() async {
     _progressTimer?.cancel();
-    _fadeTimer?.cancel();
+    _cancelFade();
+    await _releaseTail(keepPlayer: false);
     await _volumeSubject.close();
     await _player.dispose();
   }
