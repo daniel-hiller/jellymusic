@@ -1,12 +1,14 @@
 import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/jelly_colors.dart';
 import '../../core/util/item_x.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
+import '../../widgets/album_shelf.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 import '../player/radio_actions.dart';
@@ -23,6 +25,7 @@ class AlbumDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final detail = ref.watch(albumDetailProvider(albumId));
+    final similar = ref.watch(similarAlbumsProvider(albumId));
     final service = ref.watch(jellyfinServiceProvider);
     final controller = ref.watch(playerControllerProvider);
 
@@ -45,6 +48,24 @@ class AlbumDetailScreen extends ConsumerWidget {
           ].where((s) => s.isNotEmpty).join(' · ');
 
           final albumArtist = album?.albumArtistLabel ?? '';
+          final discs = _discs(tracks);
+
+          // [i] is always the position in the flat track list, so playback
+          // starts on the tapped track no matter which disc it sits on.
+          SongTile tile(int i) {
+            final track = tracks[i];
+            final trackArtist = track.trackArtistLabel;
+            // Only show the per-track artist when it differs from the
+            // album artist — i.e. compilations ("Various Artists") and
+            // guest features. Hides the redundant repeat on normal albums.
+            final showArtist = trackArtist.isNotEmpty &&
+                trackArtist.toLowerCase() != albumArtist.toLowerCase();
+            return SongTile(
+              song: track,
+              showArtist: showArtist,
+              onTap: () => controller.playItems(tracks, index: i),
+            );
+          }
 
           return CustomScrollView(
             slivers: [
@@ -61,32 +82,43 @@ class AlbumDetailScreen extends ConsumerWidget {
                         : () => controller.playItems(tracks),
                     onShuffle: tracks.isEmpty
                         ? null
-                        : () async {
-                            await controller.playItems(tracks);
-                            await controller.toggleShuffle();
-                          },
+                        : () => controller.playItemsShuffled(tracks),
                     onRadio: () => startRadio(context, ref, albumId),
                     favItemId: albumId,
                   ),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 8)),
-              SliverList.builder(
-                itemCount: tracks.length,
-                itemBuilder: (context, i) {
-                  final track = tracks[i];
-                  final trackArtist = track.trackArtistLabel;
-                  // Only show the per-track artist when it differs from the
-                  // album artist — i.e. compilations ("Various Artists") and
-                  // guest features. Hides the redundant repeat on normal albums.
-                  final showArtist = trackArtist.isNotEmpty &&
-                      trackArtist.toLowerCase() != albumArtist.toLowerCase();
-                  return SongTile(
-                    song: track,
-                    showArtist: showArtist,
-                    onTap: () => controller.playItems(tracks, index: i),
-                  );
-                },
+              if (discs.length < 2)
+                SliverList.builder(
+                  itemCount: tracks.length,
+                  itemBuilder: (context, i) => tile(i),
+                )
+              else
+                for (final disc in discs) ...[
+                  _DiscHeader(l.discNumber('${disc.number}')),
+                  SliverList.builder(
+                    itemCount: disc.length,
+                    itemBuilder: (context, i) => tile(disc.start + i),
+                  ),
+                ],
+              // Related albums need server-side metadata; without it the answer
+              // is empty and the shelf, heading included, stays away.
+              ...similar.maybeWhen(
+                data: (items) => items.isEmpty
+                    ? const <Widget>[]
+                    : [
+                        DetailSectionHeader(l.similarAlbums),
+                        SliverToBoxAdapter(
+                          child: AlbumShelf(
+                            items: items,
+                            horizontalPadding: 14,
+                            onOpen: (item) =>
+                                context.go('/library/album/${item.id}'),
+                          ),
+                        ),
+                      ],
+                orElse: () => const <Widget>[],
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
@@ -101,6 +133,59 @@ class AlbumDetailScreen extends ConsumerWidget {
     if (ms == 0) return '';
     final min = (ms / 60000).round();
     return '$min min';
+  }
+
+  /// The runs of consecutive tracks that share a disc number. `albumTracks`
+  /// sorts by `ParentIndexNumber` first, so one run per disc is enough; a
+  /// single run means a single-disc album and no headings.
+  static List<_Disc> _discs(List<JellyfinItem> tracks) {
+    final discs = <_Disc>[];
+    for (final track in tracks) {
+      final number = track.parentIndexNumber ?? 1;
+      if (discs.isEmpty || discs.last.number != number) {
+        discs.add(_Disc(number, discs.isEmpty ? 0 : discs.last.end));
+      }
+      discs.last.length++;
+    }
+    return discs;
+  }
+}
+
+/// One disc of a multi-disc album: its number plus where its tracks begin in
+/// the flat track list.
+class _Disc {
+  _Disc(this.number, this.start);
+
+  final int number;
+  final int start;
+  int length = 0;
+
+  int get end => start + length;
+}
+
+/// Divider between the discs of a multi-disc album. Quieter than a section
+/// heading — it labels a continuation of the same list, not a new one.
+class _DiscHeader extends StatelessWidget {
+  const _DiscHeader(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 16, 22, 4),
+        child: Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+            color: context.colors.textTertiary,
+          ),
+        ),
+      ),
+    );
   }
 }
 

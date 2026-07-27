@@ -249,19 +249,32 @@ class PlayerController {
   Future<void> removeQueueItem(int index) =>
       _remote != null ? Future.value() : _handler.removeQueueItemAt(index);
 
+  /// Play [items] shuffled — what a "Shuffle" button means. The mode is *set*
+  /// rather than toggled, so an already-shuffled player doesn't fall back to
+  /// straight order. Shuffling after the queue is loaded is deliberate: the
+  /// order is drawn over the new sources, not the ones they replaced.
+  Future<void> playItemsShuffled(List<JellyfinItem> items) async {
+    await playItems(items);
+    await setShuffle(true);
+  }
+
   /// Shuffle and repeat read their current value from whichever side is live —
   /// the remote reports both in its `PlayState`, so toggling stays in step.
+  Future<void> setShuffle(bool enabled) {
+    final remote = _remote;
+    if (remote != null) return remote.setShuffle(enabled);
+    return _handler.setShuffleMode(
+      enabled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none,
+    );
+  }
+
   Future<void> toggleShuffle() {
     final remote = _remote;
-    if (remote != null) {
-      return remote.setShuffle(!_remoteState().shuffle);
-    }
-    final current = _handler.playbackState.value.shuffleMode;
-    return _handler.setShuffleMode(
-      current == AudioServiceShuffleMode.all
-          ? AudioServiceShuffleMode.none
-          : AudioServiceShuffleMode.all,
-    );
+    final current = remote != null
+        ? _remoteState().shuffle
+        : _handler.playbackState.value.shuffleMode ==
+            AudioServiceShuffleMode.all;
+    return setShuffle(!current);
   }
 
   Future<void> cycleRepeat() {
