@@ -253,11 +253,15 @@ class PlayerController {
 
   /// Play [items] shuffled — what a "Shuffle" button means. The mode is *set*
   /// rather than toggled, so an already-shuffled player doesn't fall back to
-  /// straight order. Shuffling after the queue is loaded is deliberate: the
-  /// order is drawn over the new sources, not the ones they replaced.
+  /// straight order. The queue is loaded shuffled in one go, so the track it
+  /// starts on isn't cut off by a reshuffle a moment later.
   Future<void> playItemsShuffled(List<JellyfinItem> items) async {
-    await playItems(items);
-    await setShuffle(true);
+    final remote = _remote;
+    if (remote != null) {
+      await remote.play([for (final i in items) i.id]);
+      return remote.setShuffle(true);
+    }
+    return _handler.loadQueue(items, shuffled: true);
   }
 
   /// Shuffle and repeat read their current value from whichever side is live —

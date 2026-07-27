@@ -235,6 +235,11 @@ class AudioPlayerHandler extends BaseAudioHandler
   /// True from the moment the overlap starts until the tail has run out.
   bool _crossfading = false;
 
+  /// Whether the position stream has caught up with the track the player is on,
+  /// so the end of it can be acted on. Cleared at every track change and every
+  /// new queue; see [_maybeCrossfade].
+  bool _boundaryArmed = false;
+
   /// Head start for opening the tail: the second decoder has to connect, read
   /// and seek before the overlap begins, which took a good two seconds in
   /// testing against a remote server.
@@ -255,6 +260,20 @@ class AudioPlayerHandler extends BaseAudioHandler
     if (total <= fadeDuration * 2) return;
     final remaining = total - position;
     if (remaining <= Duration.zero) return;
+
+    // Position and duration reach us from two different streams, so a track
+    // change leaves a window where the position still belongs to the track
+    // that just ended while the duration already belongs to the new one. Read
+    // at face value that says "almost over", and the boundary would hand
+    // playback straight on again — skipping the track the listener just
+    // started. Wait for a position that is unambiguously this track's.
+    if (!_boundaryArmed) {
+      if (position <= fadeDuration ||
+          remaining > fadeDuration + _tailPreroll) {
+        _boundaryArmed = true;
+      }
+      return;
+    }
 
     if (remaining <= fadeDuration + _tailPreroll) unawaited(_prepareTail(total));
     if (remaining > fadeDuration) return;
@@ -315,6 +334,9 @@ class AudioPlayerHandler extends BaseAudioHandler
       // change is what surfaces the new MediaItem and scrobbles it.
       _fadeGain = 0;
       await _applyVolume();
+      // Last chance to notice an abort: moving the primary after a skip or a
+      // new queue took over would advance a track the listener just chose.
+      if (ramp != _tailRamp) return;
       await _player.seekToNext();
       // Ramp the arriving track up here rather than leaving it to
       // _setCurrentIndex, which stays quiet during an overlap: two identical
@@ -402,22 +424,36 @@ class AudioPlayerHandler extends BaseAudioHandler
   /// Replace the queue with [items] and start at [startIndex], optionally
   /// resuming at [startPosition] (used when playback is handed back from a
   /// cast target).
+  ///
+  /// Pass [shuffled] to start them in a shuffled order — the order is drawn
+  /// here rather than by turning shuffle on afterwards, which would replace the
+  /// sources a second time and interrupt the track that just started.
   Future<void> loadQueue(
     List<JellyfinItem> items, {
     int startIndex = 0,
     Duration startPosition = Duration.zero,
+    bool shuffled = false,
   }) async {
     final gen = ++_loadGeneration;
-    final mediaItems = items.map(_toMediaItem).toList();
+    final ordered = items.map(_toMediaItem).toList();
+    final mediaItems = shuffled ? ([...ordered]..shuffle()) : ordered;
+    if (shuffled) {
+      startIndex = 0;
+      playbackState.add(playbackState.value
+          .copyWith(shuffleMode: AudioServiceShuffleMode.all));
+    }
     queue.add(mediaItems);
     _negotiations.clear();
-    _queueRevision++;
+    // Keeping the order they came in lets shuffle be switched off again.
+    _shuffleOrigin = shuffled ? ordered : null;
     // A new queue makes any overlap in progress meaningless.
+    _boundaryArmed = false;
     await _releaseTail();
 
-    // Negotiate the one entry that starts playing now. The rest keep their
-    // fallback URL until [_prepareNext] reaches them — a queue can be hundreds
-    // of tracks long and this is a request each.
+    // Negotiate the one entry that starts playing now; the rest keep their
+    // universal URL. A queue can be hundreds of tracks long and this is a
+    // request each, and their sources can no longer be swapped after the fact
+    // (see [_negotiations]).
     final start = startIndex >= 0 && startIndex < mediaItems.length
         ? await _negotiate(mediaItems[startIndex])
         : null;
@@ -507,6 +543,7 @@ class AudioPlayerHandler extends BaseAudioHandler
     final next = q[index];
     if (mediaItem.value?.id == next.id) return;
     mediaItem.add(next);
+    _boundaryArmed = false;
     // Level the new track before bringing it up, so the fade ramps towards the
     // level it will keep instead of stepping to it afterwards.
     unawaited(_applyNormalization(next));
@@ -520,7 +557,6 @@ class AudioPlayerHandler extends BaseAudioHandler
       _fadeTo(1.0, fadeDuration);
     }
     _onTrackStarted(next);
-    unawaited(_prepareNext());
   }
 
   /// The queue played to its end. just_audio keeps `playing == true` at the
@@ -553,50 +589,27 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   /// Server decisions for the tracks of the current queue, keyed by item id.
   ///
+  /// Only the entry the listener starts is in here: its source is built after
+  /// the decision comes back. The rest of the queue streams from the universal
+  /// endpoint, and [JellyfinService.fallbackPlayback] describes what that
+  /// means for the report to the server.
+  ///
+  /// Negotiating them too would mean swapping a source while playback is under
+  /// way, and positional inserts do not survive the libmpv backend: it appends
+  /// the source and then tries to move it into place with an index one past
+  /// the end of the playlist, so the move is rejected and the entry stays at
+  /// the back. The remove that follows then takes out an unrelated track, and
+  /// from there on the player's sources sit at different positions than the
+  /// queue this handler reports from — one track audible, another one shown
+  /// and scrobbled.
+  ///
   /// Futures rather than values, so a track that starts while its negotiation
   /// is still in flight can wait for it instead of reporting a guess.
   final Map<String, Future<PlaybackNegotiation>> _negotiations = {};
 
-  /// Bumped by every structural change to the queue, so a negotiation that
-  /// comes back late can tell whether the index it was about still means the
-  /// same track.
-  int _queueRevision = 0;
-
   Future<PlaybackNegotiation> _negotiate(MediaItem item) => _negotiations
       .putIfAbsent(item.id, () => _jellyfin.negotiatePlayback(item.id));
 
-  /// Negotiate the entry that plays after the current one and swap its source
-  /// in, so it starts from the URL the server actually chose.
-  ///
-  /// Done as soon as a track starts rather than as it ends: libmpv opens the
-  /// next playlist entry once the current one has been read to the end, and
-  /// replacing an entry it already opened would throw that prefetch away —
-  /// exactly the gapless transition the swap is meant to leave alone.
-  Future<void> _prepareNext() async {
-    final index = _player.nextIndex; // shuffle- and repeat-aware
-    if (index == null || index >= queue.value.length) return;
-    final item = queue.value[index];
-    if (_negotiations.containsKey(item.id)) return;
-
-    final revision = _queueRevision;
-    final negotiated = await _negotiate(item);
-    // The queue moved on, or the track is already playing (or past): either
-    // way the entry we were going to replace isn't there to replace any more.
-    if (revision != _queueRevision) return;
-    final current = _player.currentIndex;
-    if (current == null || current >= index) return;
-    if (index >= queue.value.length || queue.value[index].id != item.id) return;
-    if (negotiated.url == item.extras!['url']) return; // nothing to swap
-
-    // Insert before removing: in between, the entry that plays next is already
-    // the right one, and the stale copy has moved one slot further back. The
-    // other order would leave a hole for a transition to fall into.
-    await _player.insertAudioSources(
-      index,
-      [_toSource(item, url: negotiated.url)],
-    );
-    await _player.removeAudioSourceAt(index + 1);
-  }
 
   // ─── Queue editing ─────────────────────────────────────────────────
 
@@ -604,22 +617,57 @@ class AudioPlayerHandler extends BaseAudioHandler
   Future<void> addToQueue(List<JellyfinItem> items) async {
     if (items.isEmpty) return;
     final mediaItems = items.map(_toMediaItem).toList();
+    _shuffleOrigin = null; // the saved order no longer describes this queue
     queue.add([...queue.value, ...mediaItems]);
-    _queueRevision++;
     await _player.addAudioSources(mediaItems.map(_toSource).toList());
-    unawaited(_prepareNext());
   }
 
   /// Insert tracks right after the current one ("play next").
   Future<void> playNext(List<JellyfinItem> items) async {
     if (items.isEmpty) return;
     final mediaItems = items.map(_toMediaItem).toList();
-    final at = ((_player.currentIndex ?? -1) + 1).clamp(0, queue.value.length);
+    final current = _player.currentIndex;
+    final at = ((current ?? -1) + 1).clamp(0, queue.value.length);
     final q = [...queue.value]..insertAll(at, mediaItems);
-    queue.add(q);
-    _queueRevision++;
-    await _player.insertAudioSources(at, mediaItems.map(_toSource).toList());
-    unawaited(_prepareNext());
+    // Landing at the end is an append, which the backend does support.
+    if (current == null || at == queue.value.length) {
+      queue.add(q);
+      await _player.addAudioSources(mediaItems.map(_toSource).toList());
+      return;
+    }
+    _shuffleOrigin = null; // the saved order no longer describes this queue
+    await _resequence(q, index: current, position: _player.position);
+  }
+
+  /// Rebuild the player's sources from [items], carrying playback on at
+  /// [index] and [position].
+  ///
+  /// Anything but an append has to go this way: the desktop backend cannot put
+  /// a source at a given position (see [_negotiations]), so an edit in the
+  /// middle is done by replacing the list outright. That costs a short gap,
+  /// which is why only deliberate actions do it.
+  Future<void> _resequence(
+    List<MediaItem> items, {
+    required int index,
+    required Duration position,
+  }) async {
+    final resumePlaying = _player.playing;
+    // Before the sources move: an index change surfaces the entry at that
+    // position, and it has to find the new queue there.
+    queue.add(items);
+    await _releaseTail();
+    _boundaryArmed = false;
+    _swappingQueue = true;
+    try {
+      await _player.setAudioSources(
+        items.map(_toSource).toList(),
+        initialIndex: index.clamp(0, items.length - 1),
+        initialPosition: position,
+      );
+    } finally {
+      _swappingQueue = false;
+    }
+    if (resumePlaying) unawaited(_player.play());
   }
 
   /// Reorder the queue (drag-and-drop in the queue view).
@@ -628,10 +676,9 @@ class AudioPlayerHandler extends BaseAudioHandler
     if (oldIndex < 0 || oldIndex >= q.length) return;
     final item = q.removeAt(oldIndex);
     q.insert(newIndex.clamp(0, q.length), item);
+    _shuffleOrigin = null; // the saved order no longer describes this queue
     queue.add(q);
-    _queueRevision++;
     await _player.moveAudioSource(oldIndex, newIndex);
-    unawaited(_prepareNext());
   }
 
   /// Remove one entry from the queue by position. This is the canonical
@@ -642,10 +689,9 @@ class AudioPlayerHandler extends BaseAudioHandler
     final q = [...queue.value];
     if (index < 0 || index >= q.length) return;
     q.removeAt(index);
+    _shuffleOrigin = null; // the saved order no longer describes this queue
     queue.add(q);
-    _queueRevision++;
     await _player.removeAudioSourceAt(index);
-    unawaited(_prepareNext());
   }
 
   /// Drop the whole queue and stop playback.
@@ -788,12 +834,49 @@ class AudioPlayerHandler extends BaseAudioHandler
     await super.stop();
   }
 
+  /// The queue in its original order while shuffle is on, so switching it off
+  /// can put it back. Dropped as soon as an edit makes it stale.
+  List<MediaItem>? _shuffleOrigin;
+
+  /// Shuffle by reordering the queue itself rather than asking the player to.
+  ///
+  /// The desktop backend maps shuffle onto libmpv's `playlist-shuffle`, which
+  /// physically reorders its playlist and then reports positions within *that*
+  /// order — while this handler's queue, and everything the UI and the server
+  /// see, stays in the order it was built in. The two drift apart on the first
+  /// shuffled track. Doing the reordering here keeps one order for both.
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
-    if (enabled) await _player.shuffle();
-    await _player.setShuffleModeEnabled(enabled);
+    final wasEnabled = _shuffleOrigin != null;
+    final items = queue.value;
+    if (enabled == wasEnabled || items.isEmpty) {
+      playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+      return;
+    }
+
+    final current = _player.currentIndex ?? 0;
+    final playing = current >= 0 && current < items.length
+        ? items[current]
+        : null;
+
+    List<MediaItem> next;
+    if (enabled) {
+      _shuffleOrigin = items;
+      // The track in progress leads, so shuffling never interrupts it.
+      next = [...items]..removeWhere((m) => m.id == playing?.id);
+      next.shuffle();
+      if (playing != null) next.insert(0, playing);
+    } else {
+      next = _shuffleOrigin!;
+      _shuffleOrigin = null;
+    }
+
+    final index = playing == null
+        ? 0
+        : next.indexWhere((m) => m.id == playing.id).clamp(0, next.length - 1);
     playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+    await _resequence(next, index: index, position: _player.position);
   }
 
   @override
@@ -844,16 +927,21 @@ class AudioPlayerHandler extends BaseAudioHandler
     // How this track is being delivered, so the server dashboard shows the
     // truth instead of a default. The negotiation for a track that starts
     // this instant may still be in flight — waiting for it costs nothing,
-    // since the URL it decides on is already playing either way.
-    final delivery = await _negotiations[item.id];
+    // since the URL it decides on is already playing either way. A track the
+    // listener didn't start was never negotiated and streams from the
+    // universal endpoint.
+    final pending = _negotiations[item.id];
+    final delivery = pending != null
+        ? await pending
+        : _jellyfin.fallbackPlayback(item.id);
     _reportedItemId = item.id;
     _reportedDelivery = delivery;
     try {
       await _jellyfin.client.playback.start(
         itemId: item.id,
-        playMethod: delivery?.playMethod ?? PlaybackNegotiation.directPlay,
-        playSessionId: delivery?.playSessionId,
-        mediaSourceId: delivery?.mediaSourceId,
+        playMethod: delivery.playMethod,
+        playSessionId: delivery.playSessionId,
+        mediaSourceId: delivery.mediaSourceId,
       );
     } catch (_) {/* offline / server hiccup — ignore */}
   }

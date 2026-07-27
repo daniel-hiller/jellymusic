@@ -246,7 +246,7 @@ class JellyfinService {
           )
           .timeout(_negotiationTimeout);
       if (info.errorCode != null || info.mediaSources.isEmpty) {
-        return _fallbackPlayback(itemId);
+        return fallbackPlayback(itemId);
       }
       final source = info.mediaSources.first;
 
@@ -277,10 +277,12 @@ class JellyfinService {
         );
       }
     } catch (_) {/* pre-negotiation server, offline, or too slow */}
-    return _fallbackPlayback(itemId);
+    return fallbackPlayback(itemId);
   }
 
-  PlaybackNegotiation _fallbackPlayback(String itemId) => PlaybackNegotiation(
+  /// How a track plays when it was never negotiated — the universal endpoint,
+  /// which every queue entry but the one the listener started uses.
+  PlaybackNegotiation fallbackPlayback(String itemId) => PlaybackNegotiation(
         url: streamUrl(itemId, maxStreamingBitrate: _maxStreamingBitrate),
         // Without a decision from the server, all we know is what we asked the
         // universal endpoint for: with a cap it re-encodes to MP3, without one
