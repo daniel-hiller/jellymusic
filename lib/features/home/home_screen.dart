@@ -13,15 +13,17 @@ import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
 
 /// Landing screen: a greeting plus horizontally-scrolling shelves that mirror
-/// what Jellyfin tracks — continue listening, recently played, recently
-/// added, most played, favourites and a random pick. Each shelf carries a
-/// heading and hides itself when the server has nothing for it.
+/// what Jellyfin tracks — continue listening, recently played, the server's
+/// own suggestions, recently added, most played, favourites and a random pick.
+/// Each shelf carries a heading and hides itself when the server has nothing
+/// for it.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   static final _shelves = <_ShelfSpec>[
     _ShelfSpec((l) => l.shelfContinue, continueListeningProvider),
     _ShelfSpec((l) => l.shelfRecentlyPlayed, recentlyPlayedProvider),
+    _ShelfSpec((l) => l.shelfSuggestions, suggestionsProvider),
     _ShelfSpec((l) => l.shelfRecentlyAdded, recentlyAddedProvider),
     _ShelfSpec((l) => l.shelfMostPlayed, mostPlayedProvider),
     _ShelfSpec((l) => l.shelfFavoriteAlbums, favoriteAlbumsProvider),

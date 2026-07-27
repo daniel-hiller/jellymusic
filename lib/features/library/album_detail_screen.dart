@@ -1,12 +1,14 @@
 import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/jelly_colors.dart';
 import '../../core/util/item_x.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
+import '../../widgets/album_shelf.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 import '../player/radio_actions.dart';
@@ -23,6 +25,7 @@ class AlbumDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final detail = ref.watch(albumDetailProvider(albumId));
+    final similar = ref.watch(similarAlbumsProvider(albumId));
     final service = ref.watch(jellyfinServiceProvider);
     final controller = ref.watch(playerControllerProvider);
 
@@ -99,6 +102,24 @@ class AlbumDetailScreen extends ConsumerWidget {
                     itemBuilder: (context, i) => tile(disc.start + i),
                   ),
                 ],
+              // Related albums need server-side metadata; without it the answer
+              // is empty and the shelf, heading included, stays away.
+              ...similar.maybeWhen(
+                data: (items) => items.isEmpty
+                    ? const <Widget>[]
+                    : [
+                        DetailSectionHeader(l.similarAlbums),
+                        SliverToBoxAdapter(
+                          child: AlbumShelf(
+                            items: items,
+                            horizontalPadding: 14,
+                            onOpen: (item) =>
+                                context.go('/library/album/${item.id}'),
+                          ),
+                        ),
+                      ],
+                orElse: () => const <Widget>[],
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           );

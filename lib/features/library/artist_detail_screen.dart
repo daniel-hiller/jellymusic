@@ -26,6 +26,7 @@ class ArtistDetailScreen extends ConsumerWidget {
     final albums = ref.watch(artistAlbumsProvider(artistId));
     final appearsOn = ref.watch(artistAppearsOnProvider(artistId));
     final top = ref.watch(artistTopTracksProvider(artistId));
+    final similar = ref.watch(similarArtistsProvider(artistId));
     final controller = ref.watch(playerControllerProvider);
     final service = ref.watch(jellyfinServiceProvider);
     final isFav =
@@ -66,10 +67,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                   OutlinedButton.icon(
                     onPressed: topTracks.isEmpty
                         ? null
-                        : () async {
-                            await controller.playItems(topTracks);
-                            await controller.toggleShuffle();
-                          },
+                        : () => controller.playItemsShuffled(topTracks),
                     icon: const Icon(Icons.shuffle_rounded, size: 18),
                     label: Text(l.shuffleAction),
                   ),
@@ -92,12 +90,12 @@ class ArtistDetailScreen extends ConsumerWidget {
             ),
           ),
           if (top.isLoading) ...[
-            _SectionHeader(l.artistPopular),
+            DetailSectionHeader(l.artistPopular),
             const SliverToBoxAdapter(
               child: SongRowsSkeleton(rows: 5, shrinkWrap: true),
             ),
           ] else if (topTracks.isNotEmpty) ...[
-            _SectionHeader(l.artistPopular),
+            DetailSectionHeader(l.artistPopular),
             SliverList.builder(
               itemCount: topTracks.length,
               itemBuilder: (context, i) => SongTile(
@@ -107,7 +105,7 @@ class ArtistDetailScreen extends ConsumerWidget {
               ),
             ),
           ],
-          _SectionHeader(l.artistAlbums),
+          DetailSectionHeader(l.artistAlbums),
           SliverToBoxAdapter(
             child: albums.when(
               loading: () => const AlbumShelfSkeleton(horizontalPadding: 14),
@@ -127,7 +125,7 @@ class ArtistDetailScreen extends ConsumerWidget {
             data: (items) => items.isEmpty
                 ? const <Widget>[]
                 : [
-                    _SectionHeader(l.artistAppearsOn),
+                    DetailSectionHeader(l.artistAppearsOn),
                     SliverToBoxAdapter(
                       child: AlbumShelf(
                         items: items,
@@ -139,8 +137,26 @@ class ArtistDetailScreen extends ConsumerWidget {
                   ],
             orElse: () => const <Widget>[],
           ),
+          // Related artists need server-side metadata; without it the answer
+          // is empty and the shelf, heading included, stays away.
+          ...similar.maybeWhen(
+            data: (items) => items.isEmpty
+                ? const <Widget>[]
+                : [
+                    DetailSectionHeader(l.similarArtists),
+                    SliverToBoxAdapter(
+                      child: AlbumShelf(
+                        items: items,
+                        horizontalPadding: 14,
+                        onOpen: (item) =>
+                            context.go('/library/artist/${item.id}'),
+                      ),
+                    ),
+                  ],
+            orElse: () => const <Widget>[],
+          ),
           if (overview.isNotEmpty) ...[
-            _SectionHeader(l.artistAbout),
+            DetailSectionHeader(l.artistAbout),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
@@ -150,28 +166,6 @@ class ArtistDetailScreen extends ConsumerWidget {
           ],
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: context.colors.textSecondary,
-          ),
-        ),
       ),
     );
   }
