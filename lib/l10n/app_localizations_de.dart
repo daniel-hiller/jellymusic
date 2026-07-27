@@ -609,4 +609,87 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get themeLight => 'Hell';
+
+  @override
+  String get sortPlayCount => 'Wiedergaben';
+
+  @override
+  String get filterTitle => 'Filter';
+
+  @override
+  String get filterPlayed => 'Gespielt';
+
+  @override
+  String get filterUnplayed => 'Ungespielt';
+
+  @override
+  String get filterGenre => 'Genre';
+
+  @override
+  String get filterDecade => 'Jahrzehnt';
+
+  @override
+  String get filterReset => 'Zurücksetzen';
+
+  @override
+  String get libraryPickerTitle => 'Bibliothek';
+
+  @override
+  String get libraryAll => 'Alle Bibliotheken';
+
+  @override
+  String discNumber(Object number) {
+    return 'CD $number';
+  }
+
+  @override
+  String get similarArtists => 'Ähnliche Künstler';
+
+  @override
+  String get similarAlbums => 'Ähnliche Alben';
+
+  @override
+  String get genreArtists => 'Künstler';
+
+  @override
+  String get genreTracks => 'Titel';
+
+  @override
+  String get shelfSuggestions => 'Für dich';
+
+  @override
+  String get queueSaveAsPlaylist => 'Als Playlist speichern';
+
+  @override
+  String get queueClear => 'Warteschlange leeren';
+
+  @override
+  String get queueCleared => 'Warteschlange geleert';
+
+  @override
+  String queueSavedAs(Object name) {
+    return 'Als „$name“ gespeichert';
+  }
+
+  @override
+  String get songMarkPlayed => 'Als gespielt markieren';
+
+  @override
+  String get songMarkUnplayed => 'Als ungespielt markieren';
+
+  @override
+  String get settingsNormalization => 'Lautstärke-Normalisierung';
+
+  @override
+  String get settingsNormalizationSubtitle =>
+      'Lautstärkeunterschiede zwischen Titeln ausgleichen';
+
+  @override
+  String get normalizationOff => 'Aus';
+
+  @override
+  String get normalizationTrack => 'Pro Titel';
+
+  @override
+  String get normalizationAlbum => 'Pro Album';
 }
