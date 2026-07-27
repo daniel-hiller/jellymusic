@@ -10,6 +10,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
 import '../../widgets/album_shelf.dart';
 import '../../widgets/cover_art.dart';
+import '../../widgets/item_menu.dart';
 import '../../widgets/skeleton.dart';
 
 /// Landing screen: a greeting plus horizontally-scrolling shelves that mirror
@@ -190,28 +191,32 @@ class _TrackCard extends ConsumerWidget {
         ref.watch(jellyfinServiceProvider).primaryImageUrl(track, size: 256);
     return SizedBox(
       width: width,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CoverArt(url: url, size: width, borderRadius: 8),
-            const SizedBox(height: 6),
-            Text(
-              track.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            Text(
-              track.trackArtistLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: context.colors.textSecondary, fontSize: 12),
-            ),
-          ],
+      child: ItemMenu(
+        item: track,
+        builder: (context, _) => InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CoverArt(url: url, size: width, borderRadius: 8),
+              const SizedBox(height: 6),
+              Text(
+                track.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              Text(
+                track.trackArtistLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ),
     );

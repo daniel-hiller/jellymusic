@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
@@ -24,6 +25,12 @@ Future<void> main() async {
   // Desktop windowing (needed by the system tray to show/focus the window).
   if (isDesktop) {
     await windowManager.ensureInitialized();
+  }
+
+  // A right click opens an item's context menu; on the web the browser would
+  // otherwise put its own menu on top of it.
+  if (kIsWeb) {
+    await BrowserContextMenu.disableContextMenu();
   }
 
   // On Linux/Windows (and optionally macOS) just_audio has no native

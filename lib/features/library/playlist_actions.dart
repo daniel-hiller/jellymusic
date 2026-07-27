@@ -67,6 +67,92 @@ Future<String?> showCreatePlaylistDialog(
   }
 }
 
+/// Prompt for a new name and rename [playlistId]. Returns true once the
+/// server has taken the new name.
+Future<bool> showRenamePlaylistDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String playlistId,
+  required String currentName,
+}) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final controller = TextEditingController(text: currentName);
+  final name = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l.playlistRenameTitle),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        onSubmitted: (v) => Navigator.of(context).pop(v.trim()),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          child: Text(l.commonSave),
+        ),
+      ],
+    ),
+  );
+
+  if (name == null || name.isEmpty || name == currentName) return false;
+
+  try {
+    await ref.read(musicRepositoryProvider).renamePlaylist(playlistId, name);
+    ref.invalidate(playlistDetailProvider(playlistId));
+    invalidatePlaylists(ref);
+    return true;
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
+    return false;
+  }
+}
+
+/// Ask for confirmation, then delete [playlistId]. Returns true once it's
+/// gone, so a screen showing the playlist can leave.
+Future<bool> showDeletePlaylistDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String playlistId,
+}) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l.playlistDeleteTitle),
+      content: Text(l.playlistDeleteBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: context.colors.error),
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(l.commonDelete),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return false;
+
+  try {
+    await ref.read(musicRepositoryProvider).deletePlaylist(playlistId);
+    invalidatePlaylists(ref);
+    return true;
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
+    return false;
+  }
+}
+
 /// Bottom sheet to add [itemIds] to an existing playlist or a new one.
 Future<void> showAddToPlaylistSheet(
   BuildContext context,

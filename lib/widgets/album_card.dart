@@ -6,8 +6,11 @@ import '../core/theme/jelly_colors.dart';
 import '../core/util/item_x.dart';
 import '../providers/providers.dart';
 import 'cover_art.dart';
+import 'item_menu.dart';
 
-/// A tappable album tile (cover + title + artist) for grids and rows.
+/// A tappable album tile (cover + title + artist) for grids and rows. Also
+/// carries artists, whose cards look the same; the context menu adapts to
+/// whichever kind it was given.
 ///
 /// The cover sizes itself to the available width via [AspectRatio], so the
 /// card fits its grid cell instead of overflowing. Pass [width] to pin the
@@ -68,6 +71,7 @@ class AlbumCard extends ConsumerWidget {
       ),
     );
 
-    return width == null ? card : SizedBox(width: width, child: card);
+    final menu = ItemMenu(item: album, builder: (context, _) => card);
+    return width == null ? menu : SizedBox(width: width, child: menu);
   }
 }
