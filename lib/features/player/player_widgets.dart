@@ -120,14 +120,18 @@ class PlayerTopBar extends StatelessWidget {
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
+        // No album, no caption: the layouts that carry the record's name next
+        // to the track leave this bar empty rather than repeating it.
         Expanded(
-          child: Text(
-            album ?? AppLocalizations.of(context).nowPlaying,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          child: album == null
+              ? const SizedBox.shrink()
+              : Text(
+                  album!,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
         ),
         if (actions.isEmpty)
           const SizedBox(width: 48)
