@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
 import '../../widgets/cover_art.dart';
+import '../../widgets/item_menu.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 
@@ -83,6 +84,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     if (artists.isNotEmpty)
                       ..._section(l.tabArtists, artists, (a) {
                         return _EntityTile(
+                          item: a,
                           title: a.name,
                           subtitle: l.tabArtists,
                           imageUrl: service.primaryImageUrl(a, size: 128),
@@ -94,6 +96,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     if (albums.isNotEmpty)
                       ..._section(l.tabAlbums, albums, (a) {
                         return _EntityTile(
+                          item: a,
                           title: a.name,
                           subtitle: a.albumArtistLabel.isNotEmpty
                               ? a.albumArtistLabel
@@ -139,8 +142,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
 }
 
+/// An album or artist hit, with the same context menu its card carries in the
+/// library.
 class _EntityTile extends StatelessWidget {
   const _EntityTile({
+    required this.item,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
@@ -148,6 +154,7 @@ class _EntityTile extends StatelessWidget {
     this.circle = false,
   });
 
+  final JellyfinItem item;
   final String title;
   final String subtitle;
   final String? imageUrl;
@@ -161,11 +168,15 @@ class _EntityTile extends StatelessWidget {
       size: 48,
       borderRadius: circle ? 24 : 6,
     );
-    return ListTile(
-      onTap: onTap,
-      leading: circle ? ClipOval(child: art) : art,
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+    return ItemMenu(
+      item: item,
+      builder: (context, menu) => ListTile(
+        onTap: onTap,
+        leading: circle ? ClipOval(child: art) : art,
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: menu.button,
+      ),
     );
   }
 }

@@ -24,6 +24,11 @@ All notable changes to JellyMusic, newest first. This project follows
 - A **"For you"** shelf on the home screen, from the server's own suggestions.
 - **Save the queue as a playlist**, and clear it.
 - **Mark tracks played or unplayed** from the song menu.
+- **Context menus on albums, artists, playlists and genres**, not just tracks —
+  play, shuffle, play next, queue, start a radio, favourite, and rename or
+  delete a playlist. Each kind offers what it can actually do.
+- **Long-press and right-click open the same menu** as the overflow button,
+  everywhere an item is shown.
 - Optional **volume levelling** from Jellyfin's ReplayGain values, per track or
   per album (Settings → Playback → Audio). Off by default.
 

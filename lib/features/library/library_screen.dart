@@ -9,6 +9,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
 import '../../widgets/album_card.dart';
 import '../../widgets/cover_art.dart';
+import '../../widgets/item_menu.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/song_tile.dart';
 import 'library_controls_bar.dart';
@@ -271,20 +272,24 @@ class _PlaylistsList extends ConsumerWidget {
               itemBuilder: (context, i) {
                 final p = items[i];
                 final count = p.childCount;
-                return ListTile(
-                  leading: CoverArt(
-                    url: service.primaryImageUrl(p, size: 96),
-                    size: 48,
-                    borderRadius: 6,
+                return ItemMenu(
+                  item: p,
+                  builder: (context, menu) => ListTile(
+                    leading: CoverArt(
+                      url: service.primaryImageUrl(p, size: 96),
+                      size: 48,
+                      borderRadius: 6,
+                    ),
+                    title: Text(p.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: count != null
+                        ? Text(l.trackCount('$count'),
+                            style: TextStyle(
+                                color: context.colors.textSecondary))
+                        : null,
+                    trailing: menu.button,
+                    onTap: () => context.go('/library/playlist/${p.id}'),
                   ),
-                  title: Text(p.name,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: count != null
-                      ? Text(l.trackCount('$count'),
-                          style: TextStyle(
-                              color: context.colors.textSecondary))
-                      : null,
-                  onTap: () => context.go('/library/playlist/${p.id}'),
                 );
               },
             ),
@@ -355,61 +360,64 @@ class _GenreTile extends StatelessWidget {
     final bottom = base.withLightness(0.24).toColor();
     final mark = base.withLightness(0.60).withSaturation(0.55).toColor();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [top, bottom],
+    return ItemMenu(
+      item: genre,
+      builder: (context, _) => GestureDetector(
+        onTap: onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [top, bottom],
+              ),
             ),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -16,
-                top: -10,
-                child: Transform.rotate(
-                  angle: 0.44, // ~25°
-                  child: Container(
-                    width: 74,
-                    height: 74,
-                    decoration: BoxDecoration(
-                      color: mark,
-                      borderRadius: BorderRadius.circular(11),
-                      boxShadow: const [
-                        BoxShadow(
-                            color: Color(0x66000000),
-                            blurRadius: 20,
-                            offset: Offset(0, 10)),
-                      ],
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -16,
+                  top: -10,
+                  child: Transform.rotate(
+                    angle: 0.44, // ~25°
+                    child: Container(
+                      width: 74,
+                      height: 74,
+                      decoration: BoxDecoration(
+                        color: mark,
+                        borderRadius: BorderRadius.circular(11),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0x66000000),
+                              blurRadius: 20,
+                              offset: Offset(0, 10)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Text(
-                    genre.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.16,
-                      shadows: [
-                        Shadow(color: Color(0x59000000), blurRadius: 6),
-                      ],
+                Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Text(
+                      genre.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.16,
+                        shadows: [
+                          Shadow(color: Color(0x59000000), blurRadius: 6),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
