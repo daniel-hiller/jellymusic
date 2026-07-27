@@ -199,6 +199,8 @@
   "filterUnplayed": "Unplayed",
   "filterGenre": "Genre",
   "filterDecade": "Decade",
+  "filterDecadeLabel": "{decade}s",
+  "@filterDecadeLabel": { "placeholders": { "decade": {} } },
   "filterReset": "Reset",
   "libraryPickerTitle": "Library",
   "libraryAll": "All libraries",

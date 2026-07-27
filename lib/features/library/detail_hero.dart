@@ -41,6 +41,31 @@ class HeroRoundAction extends StatelessWidget {
   }
 }
 
+/// Heading above a section of a detail screen ("Popular", "Similar albums", …),
+/// as a sliver so it can sit between the lists it separates.
+class DetailSectionHeader extends StatelessWidget {
+  const DetailSectionHeader(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: context.colors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The Nocturne detail header: a soft accent glow behind a horizontal row of
 /// cover + (kicker · title · meta). Collapses to a centred stack on narrow
 /// widths. Shared by the album, artist and playlist screens.

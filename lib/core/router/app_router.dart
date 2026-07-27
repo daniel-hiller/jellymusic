@@ -154,6 +154,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                             child: AlbumDetailScreen(
                                 albumId: s.pathParameters['albumId']!)),
                       ),
+                      GoRoute(
+                        path: 'artist/:artistId',
+                        builder: (_, s) => SwipeBack(
+                            child: ArtistDetailScreen(
+                                artistId: s.pathParameters['artistId']!)),
+                      ),
                     ],
                   ),
                 ],
