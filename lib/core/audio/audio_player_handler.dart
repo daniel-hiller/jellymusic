@@ -424,15 +424,28 @@ class AudioPlayerHandler extends BaseAudioHandler
   /// Replace the queue with [items] and start at [startIndex], optionally
   /// resuming at [startPosition] (used when playback is handed back from a
   /// cast target).
+  ///
+  /// Pass [shuffled] to start them in a shuffled order — the order is drawn
+  /// here rather than by turning shuffle on afterwards, which would replace the
+  /// sources a second time and interrupt the track that just started.
   Future<void> loadQueue(
     List<JellyfinItem> items, {
     int startIndex = 0,
     Duration startPosition = Duration.zero,
+    bool shuffled = false,
   }) async {
     final gen = ++_loadGeneration;
-    final mediaItems = items.map(_toMediaItem).toList();
+    final ordered = items.map(_toMediaItem).toList();
+    final mediaItems = shuffled ? ([...ordered]..shuffle()) : ordered;
+    if (shuffled) {
+      startIndex = 0;
+      playbackState.add(playbackState.value
+          .copyWith(shuffleMode: AudioServiceShuffleMode.all));
+    }
     queue.add(mediaItems);
     _negotiations.clear();
+    // Keeping the order they came in lets shuffle be switched off again.
+    _shuffleOrigin = shuffled ? ordered : null;
     // A new queue makes any overlap in progress meaningless.
     _boundaryArmed = false;
     await _releaseTail();
@@ -604,6 +617,7 @@ class AudioPlayerHandler extends BaseAudioHandler
   Future<void> addToQueue(List<JellyfinItem> items) async {
     if (items.isEmpty) return;
     final mediaItems = items.map(_toMediaItem).toList();
+    _shuffleOrigin = null; // the saved order no longer describes this queue
     queue.add([...queue.value, ...mediaItems]);
     await _player.addAudioSources(mediaItems.map(_toSource).toList());
   }
@@ -612,10 +626,48 @@ class AudioPlayerHandler extends BaseAudioHandler
   Future<void> playNext(List<JellyfinItem> items) async {
     if (items.isEmpty) return;
     final mediaItems = items.map(_toMediaItem).toList();
-    final at = ((_player.currentIndex ?? -1) + 1).clamp(0, queue.value.length);
+    final current = _player.currentIndex;
+    final at = ((current ?? -1) + 1).clamp(0, queue.value.length);
     final q = [...queue.value]..insertAll(at, mediaItems);
-    queue.add(q);
-    await _player.insertAudioSources(at, mediaItems.map(_toSource).toList());
+    // Landing at the end is an append, which the backend does support.
+    if (current == null || at == queue.value.length) {
+      queue.add(q);
+      await _player.addAudioSources(mediaItems.map(_toSource).toList());
+      return;
+    }
+    _shuffleOrigin = null; // the saved order no longer describes this queue
+    await _resequence(q, index: current, position: _player.position);
+  }
+
+  /// Rebuild the player's sources from [items], carrying playback on at
+  /// [index] and [position].
+  ///
+  /// Anything but an append has to go this way: the desktop backend cannot put
+  /// a source at a given position (see [_negotiations]), so an edit in the
+  /// middle is done by replacing the list outright. That costs a short gap,
+  /// which is why only deliberate actions do it.
+  Future<void> _resequence(
+    List<MediaItem> items, {
+    required int index,
+    required Duration position,
+  }) async {
+    final resumePlaying = _player.playing;
+    // Before the sources move: an index change surfaces the entry at that
+    // position, and it has to find the new queue there.
+    queue.add(items);
+    await _releaseTail();
+    _boundaryArmed = false;
+    _swappingQueue = true;
+    try {
+      await _player.setAudioSources(
+        items.map(_toSource).toList(),
+        initialIndex: index.clamp(0, items.length - 1),
+        initialPosition: position,
+      );
+    } finally {
+      _swappingQueue = false;
+    }
+    if (resumePlaying) unawaited(_player.play());
   }
 
   /// Reorder the queue (drag-and-drop in the queue view).
@@ -624,6 +676,7 @@ class AudioPlayerHandler extends BaseAudioHandler
     if (oldIndex < 0 || oldIndex >= q.length) return;
     final item = q.removeAt(oldIndex);
     q.insert(newIndex.clamp(0, q.length), item);
+    _shuffleOrigin = null; // the saved order no longer describes this queue
     queue.add(q);
     await _player.moveAudioSource(oldIndex, newIndex);
   }
@@ -636,6 +689,7 @@ class AudioPlayerHandler extends BaseAudioHandler
     final q = [...queue.value];
     if (index < 0 || index >= q.length) return;
     q.removeAt(index);
+    _shuffleOrigin = null; // the saved order no longer describes this queue
     queue.add(q);
     await _player.removeAudioSourceAt(index);
   }
@@ -780,12 +834,49 @@ class AudioPlayerHandler extends BaseAudioHandler
     await super.stop();
   }
 
+  /// The queue in its original order while shuffle is on, so switching it off
+  /// can put it back. Dropped as soon as an edit makes it stale.
+  List<MediaItem>? _shuffleOrigin;
+
+  /// Shuffle by reordering the queue itself rather than asking the player to.
+  ///
+  /// The desktop backend maps shuffle onto libmpv's `playlist-shuffle`, which
+  /// physically reorders its playlist and then reports positions within *that*
+  /// order — while this handler's queue, and everything the UI and the server
+  /// see, stays in the order it was built in. The two drift apart on the first
+  /// shuffled track. Doing the reordering here keeps one order for both.
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
-    if (enabled) await _player.shuffle();
-    await _player.setShuffleModeEnabled(enabled);
+    final wasEnabled = _shuffleOrigin != null;
+    final items = queue.value;
+    if (enabled == wasEnabled || items.isEmpty) {
+      playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+      return;
+    }
+
+    final current = _player.currentIndex ?? 0;
+    final playing = current >= 0 && current < items.length
+        ? items[current]
+        : null;
+
+    List<MediaItem> next;
+    if (enabled) {
+      _shuffleOrigin = items;
+      // The track in progress leads, so shuffling never interrupts it.
+      next = [...items]..removeWhere((m) => m.id == playing?.id);
+      next.shuffle();
+      if (playing != null) next.insert(0, playing);
+    } else {
+      next = _shuffleOrigin!;
+      _shuffleOrigin = null;
+    }
+
+    final index = playing == null
+        ? 0
+        : next.indexWhere((m) => m.id == playing.id).clamp(0, next.length - 1);
     playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+    await _resequence(next, index: index, position: _player.position);
   }
 
   @override
