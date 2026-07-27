@@ -1256,6 +1256,12 @@ abstract class AppLocalizations {
   /// **'Jahrzehnt'**
   String get filterDecade;
 
+  /// No description provided for @filterDecadeLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'{decade}er'**
+  String filterDecadeLabel(Object decade);
+
   /// No description provided for @filterReset.
   ///
   /// In de, this message translates to:

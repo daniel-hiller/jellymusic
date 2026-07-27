@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_info.dart';
+import '../../core/audio/audio_player_handler.dart' show AudioNormalization;
 import '../../core/desktop/desktop_tray.dart' show isDesktop;
 import '../../core/theme/jelly_colors.dart';
 import '../../data/update_service.dart';
@@ -141,6 +142,13 @@ class _PlaybackTab extends ConsumerWidget {
   String _fadeLabel(AppLocalizations l, int seconds) =>
       seconds == 0 ? l.fadeOff : l.fadeSeconds('$seconds');
 
+  String _normalizationLabel(AppLocalizations l, AudioNormalization mode) =>
+      switch (mode) {
+        AudioNormalization.off => l.normalizationOff,
+        AudioNormalization.track => l.normalizationTrack,
+        AudioNormalization.album => l.normalizationAlbum,
+      };
+
   Future<void> _pickQuality(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     final current = ref.read(audioQualityProvider).value;
@@ -189,6 +197,30 @@ class _PlaybackTab extends ConsumerWidget {
     }
   }
 
+  Future<void> _pickNormalization(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final current = ref.read(normalizationProvider).value;
+    final picked = await showDialog<AudioNormalization>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l.settingsNormalization),
+        children: [
+          for (final mode in AudioNormalization.values)
+            ListTile(
+              title: Text(_normalizationLabel(l, mode)),
+              trailing: mode == current
+                  ? Icon(Icons.check_rounded, color: context.colors.accent)
+                  : null,
+              onTap: () => Navigator.of(context).pop(mode),
+            ),
+        ],
+      ),
+    );
+    if (picked != null) {
+      await ref.read(normalizationProvider.notifier).set(picked);
+    }
+  }
+
   Future<void> _clearCache(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     await ref.read(jellyfinServiceProvider).clearCache();
@@ -203,6 +235,7 @@ class _PlaybackTab extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final quality = ref.watch(audioQualityProvider).value;
     final fade = ref.watch(fadeSecondsProvider).value;
+    final normalization = ref.watch(normalizationProvider).value;
     final gapless = ref.watch(gaplessProvider).value ?? true;
     final castReceiver =
         ref.watch(castReceiverEnabledProvider).value ?? true;
@@ -221,6 +254,16 @@ class _PlaybackTab extends ConsumerWidget {
           subtitle: Text(quality == null ? '…' : _qualityLabel(l, quality)),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => _pickQuality(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.graphic_eq_rounded),
+          title: Text(l.settingsNormalization),
+          subtitle: Text(normalization == null
+              ? l.settingsNormalizationSubtitle
+              : '${l.settingsNormalizationSubtitle} · '
+                  '${_normalizationLabel(l, normalization)}'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => _pickNormalization(context, ref),
         ),
         ListTile(
           leading: const Icon(Icons.multitrack_audio_rounded),

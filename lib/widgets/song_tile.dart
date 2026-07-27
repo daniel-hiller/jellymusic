@@ -13,10 +13,10 @@ import 'cover_art.dart';
 
 /// A single track row: title + artist, duration, and — depending on context —
 /// either a track number (album view) or the album cover art (flat song
-/// lists) as the leading widget. A trailing overflow menu exposes the
-/// favourite toggle and "add to playlist"; [onRemoveFromPlaylist], when set,
-/// adds a "remove" entry (used inside playlist detail). Highlights when it's
-/// the current track.
+/// lists) as the leading widget. A trailing overflow menu exposes playback,
+/// playlist and flag actions; [onRemoveFromPlaylist], when set, adds a
+/// "remove" entry (used inside playlist detail). Highlights when it's the
+/// current track.
 class SongTile extends ConsumerStatefulWidget {
   const SongTile({
     super.key,
@@ -50,7 +50,13 @@ class _SongTileState extends ConsumerState<SongTile> {
   /// read; seeded from the item and updated optimistically.
   bool? _favOverride;
 
+  /// Same for the played flag, which the item carries in its user data.
+  bool? _playedOverride;
+
   bool get _isFavorite => _favOverride ?? widget.song.isFavorite;
+
+  bool get _isPlayed =>
+      _playedOverride ?? widget.song.userData?.played ?? false;
 
   Future<void> _toggleFavorite() async {
     final next = !_isFavorite;
@@ -61,6 +67,16 @@ class _SongTileState extends ConsumerState<SongTile> {
           .setFavorite(widget.song.id, next);
     } catch (_) {
       if (mounted) setState(() => _favOverride = !next);
+    }
+  }
+
+  Future<void> _togglePlayed() async {
+    final next = !_isPlayed;
+    setState(() => _playedOverride = next);
+    try {
+      await ref.read(musicRepositoryProvider).setPlayed(widget.song.id, next);
+    } catch (_) {
+      if (mounted) setState(() => _playedOverride = !next);
     }
   }
 
@@ -150,7 +166,9 @@ class _SongTileState extends ConsumerState<SongTile> {
           _SongMenu(
             l: l,
             isFavorite: _isFavorite,
+            isPlayed: _isPlayed,
             onToggleFavorite: _toggleFavorite,
+            onTogglePlayed: _togglePlayed,
             onPlayNext: () {
               ref.read(playerControllerProvider).playNext([song]);
               _toast(context, l.toastPlayNext);
@@ -175,11 +193,16 @@ void _toast(BuildContext context, String message) {
     ..showSnackBar(SnackBar(content: Text(message)));
 }
 
+/// The per-song overflow menu, grouped so it stays readable as it grows:
+/// what to play, which collections the song belongs to, and the flags the
+/// server keeps for it.
 class _SongMenu extends StatelessWidget {
   const _SongMenu({
     required this.l,
     required this.isFavorite,
+    required this.isPlayed,
     required this.onToggleFavorite,
+    required this.onTogglePlayed,
     required this.onPlayNext,
     required this.onAddToQueue,
     required this.onAddToPlaylist,
@@ -188,7 +211,9 @@ class _SongMenu extends StatelessWidget {
 
   final AppLocalizations l;
   final bool isFavorite;
+  final bool isPlayed;
   final VoidCallback onToggleFavorite;
+  final VoidCallback onTogglePlayed;
   final VoidCallback onPlayNext;
   final VoidCallback onAddToQueue;
   final VoidCallback onAddToPlaylist;
@@ -203,6 +228,8 @@ class _SongMenu extends StatelessWidget {
         switch (value) {
           case 'fav':
             onToggleFavorite();
+          case 'played':
+            onTogglePlayed();
           case 'next':
             onPlayNext();
           case 'queue':
@@ -214,15 +241,7 @@ class _SongMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'fav',
-          child: _row(
-            isFavorite
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            isFavorite ? l.songUnfavorite : l.songFavorite,
-          ),
-        ),
+        // Playback
         PopupMenuItem(
           value: 'next',
           child: _row(Icons.playlist_play_rounded, l.songPlayNext),
@@ -231,6 +250,8 @@ class _SongMenu extends StatelessWidget {
           value: 'queue',
           child: _row(Icons.queue_music_rounded, l.songAddToQueue),
         ),
+        const PopupMenuDivider(),
+        // Collections
         PopupMenuItem(
           value: 'add',
           child: _row(Icons.playlist_add_rounded, l.songAddToPlaylist),
@@ -241,6 +262,26 @@ class _SongMenu extends StatelessWidget {
             child: _row(
                 Icons.playlist_remove_rounded, l.songRemoveFromPlaylist),
           ),
+        const PopupMenuDivider(),
+        // Server-side flags
+        PopupMenuItem(
+          value: 'fav',
+          child: _row(
+            isFavorite
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            isFavorite ? l.songUnfavorite : l.songFavorite,
+          ),
+        ),
+        PopupMenuItem(
+          value: 'played',
+          child: _row(
+            isPlayed
+                ? Icons.remove_done_rounded
+                : Icons.check_circle_outline_rounded,
+            isPlayed ? l.songMarkUnplayed : l.songMarkPlayed,
+          ),
+        ),
       ],
     );
   }
