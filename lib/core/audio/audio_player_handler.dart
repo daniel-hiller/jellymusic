@@ -662,8 +662,10 @@ class AudioPlayerHandler extends BaseAudioHandler
     _swappingQueue = true;
     try {
       await _reportStopped();
-      _fadeTimer?.cancel();
+      _cancelFade();
       _fadeGain = 1.0;
+      // Nothing is left to cross into, so the second decoder goes too.
+      await _releaseTail(keepPlayer: false);
       await _player.stop();
       await _player.clearAudioSources();
     } finally {
