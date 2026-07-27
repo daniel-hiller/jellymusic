@@ -248,6 +248,8 @@ class PlayerController {
       : _handler.moveQueueItem(oldIndex, newIndex);
   Future<void> removeQueueItem(int index) =>
       _remote != null ? Future.value() : _handler.removeQueueItemAt(index);
+  Future<void> clearQueue() =>
+      _remote != null ? Future.value() : _handler.clearQueue();
 
   /// Play [items] shuffled — what a "Shuffle" button means. The mode is *set*
   /// rather than toggled, so an already-shuffled player doesn't fall back to
