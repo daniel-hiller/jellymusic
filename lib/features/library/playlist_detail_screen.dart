@@ -177,10 +177,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
                       OutlinedButton.icon(
                         onPressed: tracks.isEmpty
                             ? null
-                            : () async {
-                                await controller.playItems(tracks);
-                                await controller.toggleShuffle();
-                              },
+                            : () => controller.playItemsShuffled(tracks),
                         icon: const Icon(Icons.shuffle_rounded, size: 18),
                         label: Text(l.shuffleAction),
                       ),
@@ -213,21 +210,109 @@ class PlaylistDetailScreen extends ConsumerWidget {
                   ),
                 )
               else
-                SliverList.builder(
-                  itemCount: tracks.length,
-                  itemBuilder: (context, i) => SongTile(
-                    song: tracks[i],
-                    showCoverArt: true,
-                    onTap: () => controller.playItems(tracks, index: i),
-                    onRemoveFromPlaylist: () =>
-                        _removeTrack(context, ref, tracks[i]),
-                  ),
+                _PlaylistTracks(
+                  playlistId: playlistId,
+                  tracks: tracks,
+                  onRemove: (track) => _removeTrack(context, ref, track),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           );
         },
       ),
+    );
+  }
+}
+
+/// The playlist's tracks, reorderable by dragging the handle on the right.
+///
+/// The new order shows immediately and the server call follows; if it fails
+/// the list snaps back to where it was, so what's on screen never claims an
+/// order the playlist doesn't have.
+class _PlaylistTracks extends ConsumerStatefulWidget {
+  const _PlaylistTracks({
+    required this.playlistId,
+    required this.tracks,
+    required this.onRemove,
+  });
+
+  final String playlistId;
+  final List<JellyfinItem> tracks;
+  final void Function(JellyfinItem track) onRemove;
+
+  @override
+  ConsumerState<_PlaylistTracks> createState() => _PlaylistTracksState();
+}
+
+class _PlaylistTracksState extends ConsumerState<_PlaylistTracks> {
+  late List<JellyfinItem> _tracks = widget.tracks;
+
+  @override
+  void didUpdateWidget(covariant _PlaylistTracks oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A refetched playlist wins over the locally reordered copy.
+    if (!identical(oldWidget.tracks, widget.tracks)) _tracks = widget.tracks;
+  }
+
+  Future<void> _move(int oldIndex, int newIndex) async {
+    // The entry id — not the track id — addresses a slot in the playlist, so
+    // the same track twice in a playlist still moves the one that was dragged.
+    final entryId = _tracks[oldIndex].raw['PlaylistItemId'] as String?;
+    if (entryId == null) return;
+
+    final previous = _tracks;
+    final reordered = [..._tracks];
+    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+    setState(() => _tracks = reordered);
+
+    try {
+      await ref
+          .read(musicRepositoryProvider)
+          .movePlaylistItem(widget.playlistId, entryId, newIndex);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _tracks = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).errorWithMessage('$e')),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ref.watch(playerControllerProvider);
+
+    return SliverReorderableList(
+      itemCount: _tracks.length,
+      // onReorderItem already delivers the final target index (adjusted for
+      // the removed item), so no manual off-by-one correction is needed.
+      onReorderItem: _move,
+      itemBuilder: (context, i) {
+        final track = _tracks[i];
+        return Row(
+          key: ValueKey(track.raw['PlaylistItemId'] ?? track.id),
+          children: [
+            Expanded(
+              child: SongTile(
+                song: track,
+                showCoverArt: true,
+                onTap: () => controller.playItems(_tracks, index: i),
+                onRemoveFromPlaylist: () => widget.onRemove(track),
+              ),
+            ),
+            ReorderableDragStartListener(
+              index: i,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4, right: 12),
+                child: Icon(Icons.drag_handle_rounded,
+                    color: context.colors.textTertiary),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
