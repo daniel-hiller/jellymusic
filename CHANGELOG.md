@@ -82,6 +82,12 @@ All notable changes to JellyMusic, newest first. This project follows
     and the app never said what it wanted the access for. Requests to a
     Jellyfin server on the same network sat waiting instead, then gave up as
     if the server were down.
+- **A server given as a bare address and port no longer needs `http://` typed
+  in front of it.** A server URL without a scheme was always read as HTTPS, so
+  `192.168.1.5:8096` went nowhere. Private addresses now default to HTTP —
+  nothing can hold a certificate for one — and everything else still defaults
+  to HTTPS. A scheme you type yourself is left alone either way. The Apple
+  builds accept plain HTTP to the local network to match, and nowhere else.
 
 ## v1.1.2 — 2026-07-26
 

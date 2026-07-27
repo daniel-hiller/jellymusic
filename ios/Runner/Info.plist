@@ -26,6 +26,16 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- App Transport Security never applied to IP addresses, so reaching a
+	     server at `http://192.168.1.5:8096` needs no exception here. Named
+	     hosts on the same network do: this covers the `jellyfin.local` and
+	     bare `jellyfin` spellings and nothing else — a server reached over the
+	     internet still has to speak HTTPS. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<!-- A Jellyfin server usually sits on the same network as the phone, and
 	     since iOS 14 reaching one needs the local-network permission. Without
 	     this string the system has nothing to show in the prompt, and every
