@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_jellyfin/dart_jellyfin.dart';
@@ -6,6 +7,12 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../data/jellyfin/jellyfin_service.dart';
 import '../util/item_x.dart';
+
+/// Which ReplayGain value playback levels itself to.
+///
+/// Track gain makes every song equally loud; album gain applies one offset per
+/// album, which keeps the intended loudness arc within a record intact.
+enum AudioNormalization { off, track, album }
 
 /// Bridges [just_audio] (actual playback) and [audio_service] (background
 /// playback + OS media controls: notification, lockscreen, media keys).
@@ -44,6 +51,14 @@ class AudioPlayerHandler extends BaseAudioHandler
   double _fadeGain = 1.0;
   Timer? _fadeTimer;
 
+  /// Loudness-normalisation factor in 0..1 for the current track, the third
+  /// stage of the volume chain. Like [_fadeGain] it scales [_userVolume]
+  /// instead of replacing it, so levelling a quiet track never moves the
+  /// slider the user set.
+  double _normalizationGain = 1.0;
+
+  AudioNormalization _normalization = AudioNormalization.off;
+
   /// How long to fade when a track ends or begins. Zero — the default — means
   /// no fading at all, which is what makes gapless playback actually gapless.
   /// Set from the saved preference (see `settings_providers.dart`).
@@ -72,6 +87,20 @@ class AudioPlayerHandler extends BaseAudioHandler
     await _applyVolume();
   }
 
+  /// Which ReplayGain value playback levels itself to. Off by default, so
+  /// playback stays untouched unless it's asked for. Set from the saved
+  /// preference (see `settings_providers.dart`); the running track is
+  /// re-levelled at once rather than at the next boundary, because the point
+  /// of the setting is to hear what it does.
+  AudioNormalization get normalization => _normalization;
+
+  set normalization(AudioNormalization mode) {
+    if (mode == _normalization) return;
+    _normalization = mode;
+    final current = mediaItem.value;
+    if (current != null) unawaited(_applyNormalization(current));
+  }
+
   /// Toggle mute, remembering the level to restore on unmute.
   Future<void> toggleMute() {
     if (_userVolume > 0) {
@@ -81,9 +110,55 @@ class AudioPlayerHandler extends BaseAudioHandler
     return setVolume(_preMuteVolume == 0 ? 1.0 : _preMuteVolume);
   }
 
+  // ─── Loudness normalisation ────────────────────────────────────────
+
+  /// [MediaItem.extras] keys carrying the loudness values of a queue entry.
+  static const _kTrackGainDb = 'trackGainDb';
+  static const _kAlbumGainDb = 'albumGainDb';
+  static const _kAlbumId = 'albumId';
+
+  /// Level [item] according to [normalization].
+  ///
+  /// Jellyfin ships ReplayGain as a dB offset, negative for the loud masters
+  /// that dominate a mixed queue. `10^(dB/20)` turns that into the linear
+  /// factor the mixer wants; a positive gain (a quiet master) is clamped to
+  /// 1.0 rather than amplified, since there is no headroom above full scale
+  /// and boosting there would clip.
+  Future<void> _applyNormalization(MediaItem item) async {
+    final db = await _normalizationDecibels(item);
+    // Resolving the album gain can take a request — bail out if the track
+    // moved on in the meantime, or we'd level the wrong song.
+    if (mediaItem.value?.id != item.id) return;
+    _normalizationGain =
+        db == null ? 1.0 : math.min(1.0, math.pow(10, db / 20).toDouble());
+    await _applyVolume();
+  }
+
+  /// The gain in dB that applies to [item], or null to leave it at its own
+  /// level — either because normalisation is off or because the server has no
+  /// value for this track or album.
+  Future<double?> _normalizationDecibels(MediaItem item) async {
+    final extras = item.extras;
+    switch (normalization) {
+      case AudioNormalization.off:
+        return null;
+      case AudioNormalization.track:
+        return extras?[_kTrackGainDb] as double?;
+      case AudioNormalization.album:
+        // Newer servers copy the album gain onto the track; older ones keep it
+        // only on the album item, which the service resolves and memoises.
+        final inherited = extras?[_kAlbumGainDb] as double?;
+        if (inherited != null) return inherited;
+        final albumId = extras?[_kAlbumId] as String?;
+        if (albumId == null) return null;
+        return _jellyfin.albumNormalizationGain(albumId);
+    }
+  }
+
   // ─── Fading ────────────────────────────────────────────────────────
 
-  Future<void> _applyVolume() => _player.setVolume(_userVolume * _fadeGain);
+  Future<void> _applyVolume() =>
+      _player.setVolume(_userVolume * _fadeGain * _normalizationGain);
 
   /// Ramp the fade envelope to [target] over [over]. Returns when the ramp is
   /// done, so callers can pause/skip on a silent player.
@@ -257,6 +332,9 @@ class AudioPlayerHandler extends BaseAudioHandler
     final next = q[index];
     if (mediaItem.value?.id == next.id) return;
     mediaItem.add(next);
+    // Level the new track before bringing it up, so the fade ramps towards the
+    // level it will keep instead of stepping to it afterwards.
+    unawaited(_applyNormalization(next));
     // The outgoing track faded itself out; bring the new one up.
     if (fadeDuration > Duration.zero && _player.playing) {
       _fadeTo(1.0, fadeDuration);
@@ -330,6 +408,9 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   MediaItem _toMediaItem(JellyfinItem item) {
     final art = _jellyfin.primaryImageUrl(item, size: 512);
+    final trackGain = item.normalizationGainDb;
+    final albumGain = item.albumNormalizationGainDb;
+    final albumId = item.albumId;
     return MediaItem(
       id: item.id,
       title: item.name,
@@ -344,6 +425,12 @@ class AudioPlayerHandler extends BaseAudioHandler
           item.id,
           maxStreamingBitrate: _jellyfin.maxStreamingBitrate,
         ),
+        // The loudness values travel with the track: the queue entry is all
+        // the player still has by the time it reaches the front, and looking
+        // them up again per track change would be a request each.
+        if (trackGain != null) _kTrackGainDb: trackGain,
+        if (albumGain != null) _kAlbumGainDb: albumGain,
+        if (albumId != null) _kAlbumId: albumId,
       },
     );
   }

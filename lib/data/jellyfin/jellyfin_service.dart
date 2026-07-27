@@ -2,6 +2,7 @@ import 'package:dart_jellyfin/dart_jellyfin.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 import '../../core/app_info.dart';
+import '../../core/util/item_x.dart';
 import '../cache/http_cache.dart';
 
 /// Thin wrapper around [JellyfinClient] that owns the connection identity
@@ -52,8 +53,16 @@ class JellyfinService {
   /// play. Set from user settings; applied to newly started tracks.
   int? maxStreamingBitrate;
 
+  /// Album-level normalisation gains keyed by album id, including the misses:
+  /// a null value means "asked, the server has none", so an unscanned album
+  /// isn't re-fetched once per track.
+  final Map<String, double?> _albumGains = {};
+
   /// Drop all cached HTTP responses (after writes, on logout, on refresh).
-  Future<void> clearCache() async => _cacheStore?.clean();
+  Future<void> clearCache() async {
+    _albumGains.clear();
+    await _cacheStore?.clean();
+  }
 
   String get deviceId => _deviceId;
   bool get isConnected => client.baseUrl != null;
@@ -76,7 +85,32 @@ class JellyfinService {
   void setSession({required String token, required String userId}) =>
       client.setSession(token: token, userId: userId);
 
-  void logout() => client.disconnect();
+  void logout() {
+    _albumGains.clear();
+    client.disconnect();
+  }
+
+  // ─── Loudness ──────────────────────────────────────────────────────
+
+  /// Album-wide normalisation gain in dB, or null when the server has none.
+  ///
+  /// Only newer servers copy the album gain onto every track, so it generally
+  /// has to be read off the album item itself. The result is memoised because
+  /// a queue is usually a handful of albums played track by track — otherwise
+  /// this would be one request per track change.
+  Future<double?> albumNormalizationGain(String albumId) async {
+    if (_albumGains.containsKey(albumId)) return _albumGains[albumId];
+    double? gain;
+    try {
+      gain = (await client.items.byId(albumId))?.normalizationGainDb;
+    } catch (_) {
+      // Offline or a server hiccup — don't cache the miss, so the next track
+      // from this album can try again.
+      return null;
+    }
+    _albumGains[albumId] = gain;
+    return gain;
+  }
 
   // ─── Artwork URLs ──────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/audio/audio_player_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/providers.dart';
 
@@ -150,6 +151,42 @@ class MinimizeToTrayController extends AsyncNotifier<bool> {
     state = AsyncData(enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kMinimizeToTray, enabled);
+  }
+}
+
+// ─── Playback: loudness normalisation ────────────────────────────────
+
+const _kNormalization = 'settings.normalization';
+
+/// Saved levelling mode; off unless the user turned it on.
+Future<AudioNormalization> loadSavedNormalization() async {
+  final prefs = await SharedPreferences.getInstance();
+  final index = prefs.getInt(_kNormalization);
+  final values = AudioNormalization.values;
+  return (index == null || index < 0 || index >= values.length)
+      ? AudioNormalization.off
+      : values[index];
+}
+
+/// Which ReplayGain value playback levels itself to. Applies to the running
+/// track at once.
+final normalizationProvider =
+    AsyncNotifierProvider<NormalizationController, AudioNormalization>(
+        NormalizationController.new);
+
+class NormalizationController extends AsyncNotifier<AudioNormalization> {
+  @override
+  Future<AudioNormalization> build() async {
+    final mode = await loadSavedNormalization();
+    ref.read(audioHandlerProvider).normalization = mode;
+    return mode;
+  }
+
+  Future<void> set(AudioNormalization mode) async {
+    ref.read(audioHandlerProvider).normalization = mode;
+    state = AsyncData(mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kNormalization, mode.index);
   }
 }
 

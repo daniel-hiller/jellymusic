@@ -56,6 +56,7 @@ Future<void> main() async {
   // Apply the saved streaming quality before the first track plays.
   service.maxStreamingBitrate = (await loadSavedAudioQuality()).bitrate;
   final fadeSeconds = await loadSavedFadeSeconds();
+  final normalization = await loadSavedNormalization();
 
   // Start audio_service — this hosts our handler in a background isolate
   // on mobile and wires OS media controls.
@@ -69,6 +70,7 @@ Future<void> main() async {
     ),
   );
   audioHandler.fadeDuration = Duration(seconds: fadeSeconds);
+  audioHandler.normalization = normalization;
 
   runApp(
     ProviderScope(
