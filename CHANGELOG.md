@@ -62,6 +62,12 @@ All notable changes to JellyMusic, newest first. This project follows
 - The crossfade could **skip the track that had just started**: position and
   duration arrive on separate streams, and during a track change their
   difference briefly read as "almost over", handing playback straight on.
+- **Long, frozen launch on iOS and iPadOS.** The libmpv/FFmpeg frameworks that
+  give Linux and Windows their audio backend were being linked into the iOS,
+  macOS and Android builds as well, where playback runs through the OS engine
+  and they are never loaded. The system still had to map and verify them before
+  the app could draw its first frame. They are now built only for the two
+  platforms that use them, which also shrinks every other build.
 
 ## v1.1.2 — 2026-07-26
 

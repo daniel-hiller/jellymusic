@@ -22,7 +22,12 @@ dependencies:
   # --- Audio playback ---
   just_audio: ^0.10.6            # core player (iOS/Android/macOS/web)
   just_audio_media_kit: ^2.0.6   # libmpv backend -> adds Linux + Windows
-  media_kit_libs_audio: ^1.0.5   # native audio libs for the desktop backend
+  # libmpv/FFmpeg natives for the two platforms that actually need them. The
+  # `media_kit_libs_audio` bundle would also link them into iOS, macOS and
+  # Android, where just_audio plays through the OS engine and the frameworks
+  # are dead weight the loader still has to map and verify at every launch.
+  media_kit_libs_linux: ^1.2.1
+  media_kit_libs_windows_audio: ^1.0.9
   audio_service: ^0.18.15        # background playback + OS media controls
   audio_session: ^0.2.4
 
