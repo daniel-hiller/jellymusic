@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
+import 'paged_library.dart';
 
 /// Multi-select picker to add tracks to a playlist. Lists the library's
 /// songs with a client-side text filter; tap to (de)select, then confirm.
@@ -38,7 +39,7 @@ class _PlaylistAddSongsScreenState
           .read(musicRepositoryProvider)
           .addToPlaylist(widget.playlistId, _selected.toList());
       ref.invalidate(playlistDetailProvider(widget.playlistId));
-      ref.invalidate(playlistsProvider);
+      invalidatePlaylists(ref);
       messenger.showSnackBar(
         SnackBar(content: Text(l.addedCount('${_selected.length}'))),
       );

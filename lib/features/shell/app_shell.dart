@@ -9,6 +9,7 @@ import '../../data/update_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/brand_mark.dart';
+import '../library/library_picker.dart';
 import '../library/library_section.dart';
 import '../player/mini_player.dart';
 import '../settings/settings_providers.dart';
@@ -78,6 +79,13 @@ class AppShell extends ConsumerWidget {
                     collapsed: collapsed,
                     onToggle: () =>
                         ref.read(sidebarCollapsedProvider.notifier).toggle(),
+                  ),
+                  // Hides itself unless the server has more than one music
+                  // library.
+                  LibraryPicker(
+                    style: collapsed
+                        ? LibraryPickerStyle.railCollapsed
+                        : LibraryPickerStyle.rail,
                   ),
                   Expanded(
                     child: SingleChildScrollView(

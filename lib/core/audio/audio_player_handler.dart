@@ -648,6 +648,38 @@ class AudioPlayerHandler extends BaseAudioHandler
     unawaited(_prepareNext());
   }
 
+  /// Drop the whole queue and stop playback.
+  ///
+  /// Tearing the sources down is guarded the same way [loadQueue] guards its
+  /// swap: [_swappingQueue] keeps the transient `completed` the backend can
+  /// emit from being read as "queue finished", and a fresh generation retires
+  /// any load still in flight. The player is stopped before the sources go, so
+  /// the libmpv backend closes the stream instead of indexing into a list that
+  /// is about to be empty.
+  Future<void> clearQueue() async {
+    if (queue.value.isEmpty) return;
+    ++_loadGeneration;
+    _swappingQueue = true;
+    try {
+      await _reportStopped();
+      _fadeTimer?.cancel();
+      _fadeGain = 1.0;
+      await _player.stop();
+      await _player.clearAudioSources();
+    } finally {
+      _swappingQueue = false;
+    }
+    queue.add(const []);
+    mediaItem.add(null);
+    playbackState.add(playbackState.value.copyWith(
+      playing: false,
+      processingState: AudioProcessingState.idle,
+      updatePosition: Duration.zero,
+      bufferedPosition: Duration.zero,
+      queueIndex: null,
+    ));
+  }
+
   MediaItem _toMediaItem(JellyfinItem item) {
     final art = _jellyfin.primaryImageUrl(item, size: 512);
     final trackGain = item.normalizationGainDb;

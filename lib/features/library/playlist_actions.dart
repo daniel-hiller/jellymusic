@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
+import 'paged_library.dart';
 
 /// Reusable playlist actions: create a playlist and add tracks to one. Kept
 /// as top-level helpers so any screen (library, album, song tile) can call
@@ -13,10 +14,14 @@ import '../../widgets/skeleton.dart';
 
 /// Prompt for a name and create a playlist (optionally seeded with
 /// [seedItemIds]). Returns the new playlist id, or null if cancelled/failed.
+///
+/// [confirmation] replaces the text of the success snackbar for callers whose
+/// wording differs from "playlist created" — saving the play queue, say.
 Future<String?> showCreatePlaylistDialog(
   BuildContext context,
   WidgetRef ref, {
   List<String> seedItemIds = const [],
+  String Function(String name)? confirmation,
 }) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -52,8 +57,9 @@ Future<String?> showCreatePlaylistDialog(
     final id = await ref
         .read(musicRepositoryProvider)
         .createPlaylist(name, itemIds: seedItemIds);
-    ref.invalidate(playlistsProvider);
-    messenger.showSnackBar(SnackBar(content: Text(l.playlistCreated(name))));
+    invalidatePlaylists(ref);
+    messenger.showSnackBar(SnackBar(
+        content: Text(confirmation?.call(name) ?? l.playlistCreated(name))));
     return id;
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(l.errorWithMessage('$e'))));
@@ -95,7 +101,7 @@ class _AddToPlaylistSheet extends ConsumerWidget {
           .read(musicRepositoryProvider)
           .addToPlaylist(playlistId, itemIds);
       ref.invalidate(playlistDetailProvider(playlistId));
-      ref.invalidate(playlistsProvider);
+      invalidatePlaylists(ref);
       messenger.showSnackBar(
         SnackBar(
             content: Text(itemIds.length == 1

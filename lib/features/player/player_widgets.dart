@@ -12,6 +12,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/providers.dart';
 import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
+import '../library/playlist_actions.dart';
 
 /// Dominant colour extracted from the current cover art, used to tint the
 /// player background. Returns null when extraction fails (e.g. cross-origin
@@ -384,8 +385,76 @@ class VolumeControl extends ConsumerWidget {
 
 // ─── Play queue ──────────────────────────────────────────────────────
 
+/// Actions on the queue as a whole: save it as a playlist, or clear it. An
+/// overflow menu so the labels don't crowd the queue itself; hides when there
+/// is nothing to act on, and while casting — the list is then the target's
+/// current track, not a queue this app owns.
+class QueueActionsMenu extends ConsumerWidget {
+  const QueueActionsMenu({super.key});
+
+  Future<void> _clear(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(playerControllerProvider).clearQueue();
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(l.queueCleared)));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final queue = ref.watch(queueProvider).value ?? const <MediaItem>[];
+    if (queue.isEmpty || ref.watch(playerControllerProvider).isCasting) {
+      return const SizedBox.shrink();
+    }
+
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_vert_rounded,
+          size: 20, color: context.colors.textSecondary),
+      onSelected: (value) {
+        switch (value) {
+          case 'save':
+            // A queue entry's id is the Jellyfin item id it was built from.
+            showCreatePlaylistDialog(
+              context,
+              ref,
+              seedItemIds: [for (final m in queue) m.id],
+              confirmation: l.queueSavedAs,
+            );
+          case 'clear':
+            _clear(context, ref);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'save',
+          child: _menuRow(Icons.playlist_add_rounded, l.queueSaveAsPlaylist),
+        ),
+        PopupMenuItem(
+          value: 'clear',
+          child: _menuRow(Icons.clear_all_rounded, l.queueClear),
+        ),
+      ],
+    );
+  }
+}
+
+Widget _menuRow(IconData icon, String label) => Row(
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 12),
+        Text(label),
+      ],
+    );
+
 class QueueList extends ConsumerWidget {
-  const QueueList({super.key});
+  const QueueList({super.key, this.showActions = true});
+
+  /// Whether to put [QueueActionsMenu] above the list. Surfaces that have
+  /// their own chrome — the queue screen's app bar — place the menu there and
+  /// pass false.
+  final bool showActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -398,7 +467,7 @@ class QueueList extends ConsumerWidget {
       return Center(child: Text(AppLocalizations.of(context).queueEmpty));
     }
 
-    return ReorderableListView.builder(
+    final list = ReorderableListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: queue.length,
       buildDefaultDragHandles: false,
@@ -453,6 +522,20 @@ class QueueList extends ConsumerWidget {
           ),
         );
       },
+    );
+
+    if (!showActions) return list;
+    return Column(
+      children: [
+        const Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: EdgeInsets.only(right: 8, top: 4),
+            child: QueueActionsMenu(),
+          ),
+        ),
+        Expanded(child: list),
+      ],
     );
   }
 }
