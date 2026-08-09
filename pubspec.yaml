@@ -32,7 +32,7 @@ dependencies:
   # palette_generator decoded full-size art and quantised on the UI isolate.
 
   # --- Persistence ---
-  flutter_secure_storage: ^10.3.1 # server url + access token
+  flutter_secure_storage: ^11.0.0 # server url + access token
   shared_preferences: ^2.3.3     # non-secret settings
 
   # --- Misc ---
