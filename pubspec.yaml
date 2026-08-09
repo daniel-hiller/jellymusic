@@ -17,7 +17,7 @@ dependencies:
   flutter_riverpod: ^3.4.2
 
   # --- Navigation ---
-  go_router: ^17.3.0
+  go_router: ^17.4.0
 
   # --- Audio playback ---
   just_audio: ^0.10.6            # core player (iOS/Android/macOS/web)
@@ -44,7 +44,7 @@ dependencies:
   intl: 0.20.2
   flutter_localizations:
     sdk: flutter
-  google_fonts: ^8.2.0
+  google_fonts: ^8.2.1
   flutter_svg: ^2.0.10+1        # crisp brand mark in the app chrome
   url_launcher: ^6.3.1          # open the GitHub repo / release pages
   http_cache_hive_store: ^5.1.1
