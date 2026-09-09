@@ -8,6 +8,10 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
+    # intl is pinned to whatever flutter_localizations depends on; a bump here
+    # can never resolve, so it would reopen as a failing PR every week.
+    ignore:
+      - dependency-name: intl
     groups:
       dart:
         update-types: [minor, patch]
