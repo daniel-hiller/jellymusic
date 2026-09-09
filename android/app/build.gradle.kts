@@ -16,9 +16,11 @@ android {
 
     defaultConfig {
         applicationId = "com.jellymusic.app"
-        // audio_service needs API 21+ and the media-session APIs it uses are
-        // steadier from 23 up; flutter_secure_storage is happy from 18.
-        minSdk = maxOf(flutter.minSdkVersion, 23)
+        // flutter_secure_storage 11 dropped the AES-CBC cipher path that
+        // carried API 21-23, so 24 is the floor. Flutter's own minimum is
+        // there too; the maxOf keeps the floor explicit if Flutter ever
+        // lowers it again.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
