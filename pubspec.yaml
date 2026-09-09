@@ -17,7 +17,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
 
   # --- Navigation ---
-  go_router: ^17.3.0
+  go_router: ^18.0.1
 
   # --- Audio playback ---
   just_audio: ^0.10.6            # core player (iOS/Android/macOS/web)
@@ -49,7 +49,7 @@ dependencies:
   # Pinned, not a caret range: flutter_localizations from the SDK depends on
   # this exact version, so anything else fails to resolve. It moves when
   # Flutter moves.
-  intl: 0.20.2
+  intl: 0.20.3
   flutter_localizations:
     sdk: flutter
   google_fonts: ^8.2.1
