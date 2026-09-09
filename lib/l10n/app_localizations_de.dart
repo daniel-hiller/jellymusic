@@ -261,6 +261,44 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lyricsReplace => 'Songtext ersetzen';
 
   @override
+  String get syncPlayTitle => 'Gemeinsam hören';
+
+  @override
+  String get syncPlayNewGroup => 'Neue Gruppe starten';
+
+  @override
+  String get syncPlayNameHint => 'Gruppenname';
+
+  @override
+  String get syncPlayNone =>
+      'Noch keine Gruppen. Starte eine, dann können andere beitreten.';
+
+  @override
+  String get syncPlayLeave => 'Gruppe verlassen';
+
+  @override
+  String syncPlayJoined(Object name) {
+    return 'In $name';
+  }
+
+  @override
+  String get syncPlayWaiting => 'Warte auf die anderen …';
+
+  @override
+  String syncPlayMembers(Object count) {
+    return '$count hören mit';
+  }
+
+  @override
+  String syncPlayFailed(Object error) {
+    return 'SyncPlay ist nicht verfügbar: $error';
+  }
+
+  @override
+  String get syncPlayUnsupported =>
+      'Auf diesem Server ist SyncPlay abgeschaltet.';
+
+  @override
   String get sleepTimer => 'Sleep-Timer';
 
   @override

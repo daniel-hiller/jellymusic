@@ -428,11 +428,17 @@ class AudioPlayerHandler extends BaseAudioHandler
   /// Pass [shuffled] to start them in a shuffled order — the order is drawn
   /// here rather than by turning shuffle on afterwards, which would replace the
   /// sources a second time and interrupt the track that just started.
+  /// Replace the queue and start playing at [startIndex].
+  ///
+  /// [autoPlay] is what SyncPlay turns off: there the server names the instant
+  /// every member is to start, so the queue is loaded and left paused until
+  /// that moment arrives.
   Future<void> loadQueue(
     List<JellyfinItem> items, {
     int startIndex = 0,
     Duration startPosition = Duration.zero,
     bool shuffled = false,
+    bool autoPlay = true,
   }) async {
     final gen = ++_loadGeneration;
     final ordered = items.map(_toMediaItem).toList();
@@ -486,7 +492,7 @@ class AudioPlayerHandler extends BaseAudioHandler
     // when the index is unchanged (e.g. first play at index 0), which would
     // otherwise leave the UI without a MediaItem while audio plays.
     _setCurrentIndex(startIndex);
-    unawaited(play());
+    if (autoPlay) unawaited(play());
   }
 
   /// Seek to the start of queue entry [index].

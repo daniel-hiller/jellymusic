@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/player_providers.dart';
 import '../../widgets/cover_art.dart';
 import 'cast_sheet.dart';
+import 'syncplay_sheet.dart';
 import 'player_widgets.dart';
 
 /// What fills the centre of the phone player. The queue and lyrics live inline
@@ -95,6 +96,7 @@ class _NowPlayingMobileState extends ConsumerState<NowPlayingMobile> {
                     onVerticalDragEnd: _onDragEnd,
                     child: PlayerTopBar(
                       actions: const [
+                        SyncPlayButton(),
                         CastButton(),
                         SleepTimerButton(),
                         FavoriteButton(size: 24),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/jelly_colors.dart';
 import '../../l10n/app_localizations.dart';
 import 'cast_sheet.dart';
+import 'syncplay_sheet.dart';
 import 'player_widgets.dart';
 
 /// Wide-screen player: album art on the left, a Queue / Lyrics tab pane on
@@ -26,7 +27,11 @@ class NowPlayingDesktop extends ConsumerWidget {
             children: [
               PlayerTopBar(
                 album: item.album,
-                actions: const [CastButton(), SleepTimerButton()],
+                actions: const [
+                  SyncPlayButton(),
+                  CastButton(),
+                  SleepTimerButton(),
+                ],
               ),
               Expanded(
                 child: Padding(

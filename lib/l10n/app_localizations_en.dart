@@ -260,6 +260,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsReplace => 'Replace lyrics';
 
   @override
+  String get syncPlayTitle => 'Listen together';
+
+  @override
+  String get syncPlayNewGroup => 'Start a new group';
+
+  @override
+  String get syncPlayNameHint => 'Group name';
+
+  @override
+  String get syncPlayNone => 'No groups yet. Start one and others can join.';
+
+  @override
+  String get syncPlayLeave => 'Leave the group';
+
+  @override
+  String syncPlayJoined(Object name) {
+    return 'In $name';
+  }
+
+  @override
+  String get syncPlayWaiting => 'Waiting for the others…';
+
+  @override
+  String syncPlayMembers(Object count) {
+    return '$count listening';
+  }
+
+  @override
+  String syncPlayFailed(Object error) {
+    return 'SyncPlay isn\'t available: $error';
+  }
+
+  @override
+  String get syncPlayUnsupported => 'This server has SyncPlay switched off.';
+
+  @override
   String get sleepTimer => 'Sleep timer';
 
   @override

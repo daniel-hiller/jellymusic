@@ -6,6 +6,13 @@ All notable changes to JellyMusic, newest first. This project follows
 ## v1.3.0 — 2026-09-09
 
 **Added**
+- **Listen together (SyncPlay).** Start a group or join one from the player,
+  and every member plays the same queue in step: the server names the instant
+  each play, pause and seek takes effect, and the app measures how far this
+  device's clock sits from the server's so it hits that instant rather than
+  its own idea of it. A member whose network stalls tells the group, which
+  waits for it. While a group is joined the transport drives the group instead
+  of this device alone. Needs SyncPlay enabled for the account on the server.
 - **Fetch song lyrics from the server's lyric providers.** A track without
   lyrics now offers a search instead of an empty pane; the results say which
   provider found them, for which artist and album, how long that recording is

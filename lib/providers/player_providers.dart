@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/audio/audio_player_handler.dart';
 import '../data/jellyfin/sessions_repository.dart';
+import '../data/jellyfin/syncplay_controller.dart';
+import 'syncplay_providers.dart';
 import 'cast_providers.dart';
 import 'providers.dart';
 
@@ -140,6 +142,11 @@ final playerControllerProvider = Provider<PlayerController>((ref) {
     remote: target == null
         ? null
         : RemotePlayer(ref.watch(sessionsRepositoryProvider), target.sessionId),
+    // Only while this device is actually a group member; otherwise the
+    // transport keeps acting locally as before.
+    group: ref.watch(inSyncPlayGroupProvider)
+        ? ref.watch(syncPlayControllerProvider)
+        : null,
     remoteState: () => ref.read(remotePlaybackProvider),
     onRemoteVolume: (v) => ref.read(remoteVolumeProvider.notifier).applyLocal(v),
   );
@@ -176,14 +183,23 @@ class PlayerController {
   PlayerController(
     this._handler, {
     RemotePlayer? remote,
+    SyncPlayController? group,
     RemotePlayback Function()? remoteState,
     void Function(double volume)? onRemoteVolume,
   })  : _remote = remote,
+        _group = group,
         _remoteState = remoteState ?? (() => RemotePlayback.idle),
         _onRemoteVolume = onRemoteVolume;
 
   final AudioPlayerHandler _handler;
   final RemotePlayer? _remote;
+
+  /// Set while this device is in a SyncPlay group. Transport then belongs to
+  /// the server: it decides when every member acts, and this device hears its
+  /// own command back over the socket. Acting locally as well would put it
+  /// ahead of everyone else — which is the one thing the group exists to
+  /// prevent. Casting still wins, because then playback isn't here at all.
+  final SyncPlayController? _group;
 
   /// Last polled state of the cast target; only read while casting.
   final RemotePlayback Function() _remoteState;
@@ -200,22 +216,35 @@ class PlayerController {
     if (remote != null) {
       return remote.play([for (final i in items) i.id], index: index);
     }
+    final group = _group;
+    if (group != null) return group.setQueue(items, startIndex: index);
     return _handler.loadQueue(items, startIndex: index);
   }
 
   Future<void> togglePlay() {
     final remote = _remote;
     if (remote != null) return remote.togglePlay();
+    final group = _group;
+    if (group != null) {
+      return _handler.playbackState.value.playing
+          ? group.pause()
+          : group.play();
+    }
     return _handler.playbackState.value.playing
         ? _handler.pause()
         : _handler.play();
   }
 
-  Future<void> next() => _remote?.next() ?? _handler.skipToNext();
-  Future<void> previous() => _remote?.previous() ?? _handler.skipToPrevious();
-  Future<void> seek(Duration position) =>
-      _remote?.seek(position) ?? _handler.seek(position);
-  Future<void> pause() => _remote?.pause() ?? _handler.pause();
+  Future<void> next() =>
+      _remote?.next() ?? _group?.skipToNext() ?? _handler.skipToNext();
+  Future<void> previous() => _remote?.previous() ??
+      _group?.skipToPrevious() ??
+      _handler.skipToPrevious();
+  Future<void> seek(Duration position) => _remote?.seek(position) ??
+      _group?.seek(position) ??
+      _handler.seek(position);
+  Future<void> pause() =>
+      _remote?.pause() ?? _group?.pause() ?? _handler.pause();
 
   /// Queue editing stays local: Jellyfin exposes a remote session's current
   /// item but not its queue, so these would act on the wrong list — and worse,
@@ -234,12 +263,16 @@ class PlayerController {
   Future<void> addToQueue(List<JellyfinItem> items) {
     final remote = _remote;
     if (remote != null) return remote.addToQueue([for (final i in items) i.id]);
+    final group = _group;
+    if (group != null) return group.addToQueue(items);
     return _handler.addToQueue(items);
   }
 
   Future<void> playNext(List<JellyfinItem> items) {
     final remote = _remote;
     if (remote != null) return remote.playNext([for (final i in items) i.id]);
+    final group = _group;
+    if (group != null) return group.addToQueue(items, next: true);
     return _handler.playNext(items);
   }
 
