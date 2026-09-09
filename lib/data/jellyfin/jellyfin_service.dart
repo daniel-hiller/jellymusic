@@ -328,10 +328,60 @@ class JellyfinService {
   static String _normalizeUrl(String url) {
     var u = url.trim();
     if (!u.startsWith('http://') && !u.startsWith('https://')) {
-      u = 'https://$u';
+      // A typed scheme always wins; this only fills in a missing one. HTTPS is
+      // the right guess everywhere but a literal address on a private network,
+      // where no certificate authority will issue for the address in the first
+      // place — a bare `192.168.1.5:8096` is plain HTTP or it is nothing.
+      u = '${_isPrivateAddress(u) ? 'http' : 'https'}://$u';
     }
     // Strip a trailing slash so path joins stay clean.
     if (u.endsWith('/')) u = u.substring(0, u.length - 1);
     return u;
+  }
+
+  /// An IPv4 literal exactly as typed. Nothing here resolves a name — a host
+  /// that only DNS could place stays on the HTTPS default.
+  static final _ipv4 = RegExp(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$');
+
+  /// Whether [input] — an authority as the user typed it, so possibly with a
+  /// port and a path behind it — is a literal address on a private network.
+  static bool _isPrivateAddress(String input) {
+    var host = input.split('/').first;
+    if (host.startsWith('[')) {
+      // Bracketed IPv6, with or without a port: `[fd00::1]:8096`.
+      final end = host.indexOf(']');
+      host = end == -1 ? host.substring(1) : host.substring(1, end);
+    } else {
+      // One colon separates a port. Several mean an unbracketed IPv6 literal,
+      // which then carries no port to strip.
+      final colon = host.indexOf(':');
+      if (colon != -1 && colon == host.lastIndexOf(':')) {
+        host = host.substring(0, colon);
+      }
+    }
+
+    final v4 = _ipv4.firstMatch(host);
+    if (v4 != null) {
+      final octets = [for (var i = 1; i <= 4; i++) int.parse(v4.group(i)!)];
+      if (octets.any((o) => o > 255)) return false;
+      return switch (octets) {
+        [10, _, _, _] => true, // 10.0.0.0/8
+        [127, _, _, _] => true, // loopback
+        [169, 254, _, _] => true, // link-local
+        [172, final second, _, _] => second >= 16 && second <= 31, // /12
+        [192, 168, _, _] => true, // 192.168.0.0/16
+        _ => false,
+      };
+    }
+
+    // IPv6: loopback, unique-local (fc00::/7) and link-local (fe80::/10). The
+    // colon is what tells an address from a host that merely starts the same
+    // way.
+    final v6 = host.toLowerCase();
+    if (!v6.contains(':')) return false;
+    return v6 == '::1' ||
+        v6.startsWith('fc') ||
+        v6.startsWith('fd') ||
+        v6.startsWith('fe80:');
   }
 }

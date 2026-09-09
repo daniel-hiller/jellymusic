@@ -21,6 +21,34 @@ All notable changes to JellyMusic, newest first. This project follows
   12; the general one answers the same buckets. Servers older than 12 are
   unaffected by any of this.
 
+**Fixed**
+- **Long, frozen launch on iOS and iPadOS.** Four things were in the way:
+  - The libmpv/FFmpeg frameworks that give Linux and Windows their audio
+    backend were linked into the iOS, macOS and Android builds as well, where
+    playback runs through the OS engine and they are never loaded. The system
+    still had to map and verify them before the app could draw. They are now
+    built only for the two platforms that use them, which also shrinks every
+    other build.
+  - The app drew nothing at all until the keyring, the caches and the media
+    session were ready — the OS launch image stayed up and nothing answered a
+    touch. Start-up now runs behind the splash instead of in front of it, and
+    its independent steps run at once rather than in turn.
+  - Opening the HTTP cache sweeps it for expired entries, which means reading
+    every response it holds. That ran on the UI thread at launch and grew with
+    every session, so the app got slower the more it had been used. The sweep
+    now happens off the UI thread, and entries are kept a day rather than a
+    week so there is less to sweep.
+  - iOS asks the user before an app may reach anything on their own network,
+    and the app never said what it wanted the access for. Requests to a
+    Jellyfin server on the same network sat waiting instead, then gave up as
+    if the server were down.
+- **A server given as a bare address and port no longer needs `http://` typed
+  in front of it.** A server URL without a scheme was always read as HTTPS, so
+  `192.168.1.5:8096` went nowhere. Private addresses now default to HTTP —
+  nothing can hold a certificate for one — and everything else still defaults
+  to HTTPS. A scheme you type yourself is left alone either way. The Apple
+  builds accept plain HTTP to the local network to match, and nowhere else.
+
 ## v1.2.0 — 2026-07-27
 
 **Added**

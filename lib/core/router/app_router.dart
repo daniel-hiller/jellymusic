@@ -16,9 +16,9 @@ import '../../features/player/queue_screen.dart';
 import '../../features/search/search_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/shell/app_shell.dart';
+import '../../features/shell/splash_screen.dart';
 import '../../providers/providers.dart';
 import '../../widgets/swipe_back.dart';
-import '../../widgets/brand_mark.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
@@ -55,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (_, __) => const _Splash(),
+        builder: (_, __) => const SplashScreen(),
       ),
       GoRoute(
         path: '/login',
@@ -201,27 +201,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-class _Splash extends StatelessWidget {
-  const _Splash();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrandMark(size: 96),
-            SizedBox(height: 28),
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

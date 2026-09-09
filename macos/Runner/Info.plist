@@ -22,6 +22,17 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<!-- Same reasoning as the iOS build: an IP address needs no exception, a
+	     `jellyfin.local` or bare `jellyfin` on the same network does, and
+	     anything off the local network keeps having to speak HTTPS. macOS asks
+	     the user before an app may reach their own network too. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>JellyMusic connects to your Jellyfin server. Allow access so it can reach a server on your own network.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
