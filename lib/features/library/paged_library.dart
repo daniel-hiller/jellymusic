@@ -72,8 +72,8 @@ extension LibraryKindMeta on LibraryKind {
         LibraryKind.genres => SortOptions.genres,
       };
 
-  /// Genres come from `/MusicGenres`, which narrows by name and favourite
-  /// only — none of the item filters reach it.
+  /// The genre index narrows by name and favourite only — none of the item
+  /// filters reach it.
   bool get supportsPlayedFilter => this != LibraryKind.genres;
 
   bool get supportsGenreFilter => this != LibraryKind.genres;
