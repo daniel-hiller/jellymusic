@@ -1,5 +1,6 @@
 import 'package:dart_jellyfin/dart_jellyfin.dart';
 
+import '../models/lyrics_candidate.dart';
 import 'jellyfin_service.dart';
 
 /// Narrows a list read to items the user has (not) listened to.
@@ -676,6 +677,29 @@ class MusicRepository {
 
   /// Lyrics for a track, or `null` when the server has none.
   Future<JellyfinLyrics?> lyrics(String itemId) => _c.lyrics.forItem(itemId);
+
+  /// What the server's lyric-provider plugins offer for a track.
+  ///
+  /// Empty on a server with no such plugin configured, which is the common
+  /// case — the endpoint answers with an empty list rather than an error, so
+  /// the caller cannot tell "nothing installed" from "nothing found" and
+  /// should say so either way.
+  Future<List<LyricsCandidate>> searchLyrics(String itemId) async {
+    final results = await _c.lyrics.searchRemote(itemId);
+    return [for (final r in results) LyricsCandidate.fromJson(r)];
+  }
+
+  /// Attach one of [searchLyrics]'s results to the track.
+  Future<void> saveLyrics(String itemId, String lyricId) async {
+    await _c.lyrics.downloadRemote(itemId: itemId, lyricId: lyricId);
+    await _service.clearCache();
+  }
+
+  /// Detach whatever lyrics the track currently has.
+  Future<void> deleteLyrics(String itemId) async {
+    await _c.lyrics.delete(itemId);
+    await _service.clearCache();
+  }
 
   // ─── Favourites & played state ─────────────────────────────────────
 

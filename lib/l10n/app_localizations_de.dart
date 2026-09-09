@@ -224,6 +224,43 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lyricsNone => 'Kein Songtext vorhanden';
 
   @override
+  String get lyricsSearchOnline => 'Online suchen';
+
+  @override
+  String get lyricsPickTitle => 'Songtext auswählen';
+
+  @override
+  String get lyricsNoResults =>
+      'Nichts gefunden. Die Suche braucht ein Songtext-Plugin auf dem Server.';
+
+  @override
+  String get lyricsSearchFailed => 'Die Suche ist fehlgeschlagen';
+
+  @override
+  String get lyricsSynced => 'Synchron';
+
+  @override
+  String get lyricsPlain => 'Einfach';
+
+  @override
+  String get lyricsSaved => 'Songtext gespeichert';
+
+  @override
+  String get lyricsSaveFailed => 'Der Songtext konnte nicht gespeichert werden';
+
+  @override
+  String get lyricsRemove => 'Songtext entfernen';
+
+  @override
+  String get lyricsRemoved => 'Songtext entfernt';
+
+  @override
+  String get lyricsRemoveFailed => 'Der Songtext konnte nicht entfernt werden';
+
+  @override
+  String get lyricsReplace => 'Songtext ersetzen';
+
+  @override
   String get sleepTimer => 'Sleep-Timer';
 
   @override

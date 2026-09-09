@@ -13,6 +13,7 @@ import '../../providers/providers.dart';
 import '../../widgets/cover_art.dart';
 import '../../widgets/skeleton.dart';
 import '../library/playlist_actions.dart';
+import 'lyrics_actions.dart';
 
 /// Dominant colour extracted from the current cover art, used to tint the
 /// player background. Returns null when extraction fails (e.g. cross-origin
@@ -593,7 +594,7 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
       error: (e, _) => Center(child: Text(l.lyricsUnavailable)),
       data: (lyrics) {
         if (lyrics == null || lyrics.lines.isEmpty) {
-          return Center(child: Text(l.lyricsNone));
+          return _LyricsEmpty(itemId: widget.itemId);
         }
         final lines = lyrics.lines;
         final synced = lyrics.isSynced;
@@ -619,33 +620,43 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
                 (_) => _maybeScroll(active, lines.length, constraints.maxHeight),
               );
             }
-            return ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              itemExtent: synced ? _lineExtent : null,
-              itemCount: lines.length,
-              itemBuilder: (context, i) {
-                final isActive = synced && i == active;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 4),
-                  child: Text(
-                    lines[i].text.isEmpty ? '♪' : lines[i].text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: isActive ? 18 : 16,
-                      height: 1.3,
-                      fontWeight:
-                          isActive ? FontWeight.w700 : FontWeight.w400,
-                      color: isActive
-                          ? context.colors.textPrimary
-                          : (synced
-                              ? context.colors.textTertiary
-                              : context.colors.textSecondary),
-                    ),
-                  ),
-                );
-              },
+            return Stack(
+              children: [
+                ListView.builder(
+                  controller: _scrollController,
+                  // Room at the top so the first line clears the menu button.
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 12),
+                  itemExtent: synced ? _lineExtent : null,
+                  itemCount: lines.length,
+                  itemBuilder: (context, i) {
+                    final isActive = synced && i == active;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 4),
+                      child: Text(
+                        lines[i].text.isEmpty ? '♪' : lines[i].text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isActive ? 18 : 16,
+                          height: 1.3,
+                          fontWeight:
+                              isActive ? FontWeight.w700 : FontWeight.w400,
+                          color: isActive
+                              ? context.colors.textPrimary
+                              : (synced
+                                  ? context.colors.textTertiary
+                                  : context.colors.textSecondary),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                Positioned(
+                  top: 0,
+                  right: 4,
+                  child: _LyricsMenu(itemId: widget.itemId),
+                ),
+              ],
             );
           },
         );
@@ -653,3 +664,83 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
     );
   }
 }
+
+/// Shown in place of the lyrics when the server has none for this track.
+/// The search is offered here rather than buried in a menu, because an empty
+/// pane is exactly the moment the listener wants it.
+class _LyricsEmpty extends StatelessWidget {
+  const _LyricsEmpty({required this.itemId});
+
+  final String itemId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l.lyricsNone,
+            style: TextStyle(color: context.colors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            icon: const Icon(Icons.travel_explore_rounded, size: 18),
+            label: Text(l.lyricsSearchOnline),
+            onPressed: () => showLyricsSearchSheet(context, itemId: itemId),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Replace or remove the lyrics a track already has. Both write to the
+/// library, so they sit behind a menu rather than in reach of a stray tap.
+class _LyricsMenu extends ConsumerWidget {
+  const _LyricsMenu({required this.itemId});
+
+  final String itemId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    // The action runs against this widget's context, not the menu item's:
+    // the popup route is gone by the time the callback fires.
+    return PopupMenuButton<_LyricsAction>(
+      icon: Icon(Icons.more_vert_rounded,
+          size: 20, color: context.colors.textTertiary),
+      tooltip: '',
+      onSelected: (action) => switch (action) {
+        _LyricsAction.replace =>
+          showLyricsSearchSheet(context, itemId: itemId),
+        _LyricsAction.remove => removeLyrics(context, ref, itemId: itemId),
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: _LyricsAction.replace,
+          child: Row(
+            children: [
+              const Icon(Icons.travel_explore_rounded, size: 18),
+              const SizedBox(width: 12),
+              Text(l.lyricsReplace),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: _LyricsAction.remove,
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline_rounded, size: 18),
+              const SizedBox(width: 12),
+              Text(l.lyricsRemove),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+enum _LyricsAction { replace, remove }

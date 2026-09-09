@@ -223,6 +223,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsNone => 'No lyrics available';
 
   @override
+  String get lyricsSearchOnline => 'Search online';
+
+  @override
+  String get lyricsPickTitle => 'Choose lyrics';
+
+  @override
+  String get lyricsNoResults =>
+      'Nothing found. Searching needs a lyrics provider plugin on the server.';
+
+  @override
+  String get lyricsSearchFailed => 'The search failed';
+
+  @override
+  String get lyricsSynced => 'Synced';
+
+  @override
+  String get lyricsPlain => 'Plain';
+
+  @override
+  String get lyricsSaved => 'Lyrics saved';
+
+  @override
+  String get lyricsSaveFailed => 'The lyrics couldn\'t be saved';
+
+  @override
+  String get lyricsRemove => 'Remove lyrics';
+
+  @override
+  String get lyricsRemoved => 'Lyrics removed';
+
+  @override
+  String get lyricsRemoveFailed => 'The lyrics couldn\'t be removed';
+
+  @override
+  String get lyricsReplace => 'Replace lyrics';
+
+  @override
   String get sleepTimer => 'Sleep timer';
 
   @override
