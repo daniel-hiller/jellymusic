@@ -14,6 +14,15 @@ class MusicRepository {
   final JellyfinService _service;
   JellyfinClient get _c => _service.client;
 
+  /// The projection every music read asks for.
+  ///
+  /// Jellyfin answers with a lean item unless the request names the extras it
+  /// wants, and these are the ones the UI shows: overview and genres on the
+  /// detail screens, `ChildCount` for a playlist's length, and
+  /// `AlbumPrimaryImageTag` so a track with no cover of its own can borrow the
+  /// album's.
+  static const _fields = JellyfinItemsApi.musicFields;
+
   /// The user's music libraries (usually one).
   Future<List<JellyfinView>> musicViews() async {
     final res = await _c.userViews.list();
@@ -56,6 +65,7 @@ class MusicRepository {
       sortBy: const ['DatePlayed'],
       descending: true,
       filters: const ['IsPlayed'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -72,6 +82,7 @@ class MusicRepository {
       sortBy: const ['DatePlayed'],
       descending: true,
       filters: const ['IsPlayed'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -88,6 +99,7 @@ class MusicRepository {
       sortBy: const ['PlayCount'],
       descending: true,
       filters: const ['IsPlayed'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -103,6 +115,7 @@ class MusicRepository {
       parentId: parentId,
       sortBy: const ['SortName'],
       filters: const ['IsFavorite'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -118,6 +131,7 @@ class MusicRepository {
       parentId: parentId,
       sortBy: const ['SortName'],
       filters: const ['IsFavorite'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -132,6 +146,7 @@ class MusicRepository {
       includeItemTypes: const [JellyfinItemKind.musicAlbum],
       parentId: parentId,
       sortBy: const ['Random'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -150,14 +165,16 @@ class MusicRepository {
   /// without the metadata to back it.
   Future<List<JellyfinItem>> similarArtists(String artistId,
       {int limit = 12}) async {
-    final res = await _c.library.similarArtists(itemId: artistId, limit: limit);
+    final res = await _c.library
+        .similarArtists(itemId: artistId, limit: limit, fields: _fields);
     return res.items;
   }
 
   /// Albums the server considers related to [albumId].
   Future<List<JellyfinItem>> similarAlbums(String albumId,
       {int limit = 12}) async {
-    final res = await _c.library.similarAlbums(itemId: albumId, limit: limit);
+    final res = await _c.library
+        .similarAlbums(itemId: albumId, limit: limit, fields: _fields);
     return res.items;
   }
 
@@ -250,7 +267,7 @@ class MusicRepository {
         playedState: playedState,
         genreIds: genreIds,
         years: years,
-        artistIds: artistIds.join(','),
+        artistIds: artistIds,
         limit: 100,
       );
       byArtist = res.items;
@@ -326,10 +343,8 @@ class MusicRepository {
 
   /// One page of a single item kind with the library filters applied.
   ///
-  /// The typed `items.list` covers most of the query, but `nameStartsWith`
-  /// (the A–Z rail) and `years` (the decade filter) only exist on the raw
-  /// `/Items` endpoint — either of them routes the same parameters through
-  /// [_rawItems] instead.
+  /// `nameStartsWith` is used for the A–Z rail (not `…OrGreater`) so scrolling
+  /// stays within the letter instead of bleeding into the rest of the alphabet.
   Future<JellyfinQueryResult<JellyfinItem>> _items(
     String includeItemType, {
     int startIndex = 0,
@@ -343,82 +358,25 @@ class MusicRepository {
     String? parentId,
     List<String> genreIds = const [],
     List<int> years = const [],
-    String? artistIds,
+    List<String> artistIds = const [],
   }) {
     // A text search and an A–Z letter are mutually exclusive; search wins.
     final letter = searchTerm.isEmpty ? startLetter : null;
-    final filters = _filters(favoritesOnly, playedState);
-    if (letter != null || years.isNotEmpty) {
-      return _rawItems(
-        includeItemType,
-        startIndex: startIndex,
-        limit: limit,
-        sortBy: sortBy,
-        descending: descending,
-        filters: filters,
-        startLetter: letter,
-        searchTerm: searchTerm,
-        parentId: parentId,
-        genreIds: genreIds,
-        years: years,
-        artistIds: artistIds,
-      );
-    }
     return _c.items.list(
       includeItemTypes: [includeItemType],
       parentId: parentId,
       sortBy: sortBy,
       descending: descending,
-      filters: filters,
-      genreIds: genreIds.isEmpty ? null : genreIds.join(','),
+      filters: _filters(favoritesOnly, playedState),
+      genreIds: genreIds,
       artistIds: artistIds,
+      years: years,
+      nameStartsWith: letter,
       searchTerm: searchTerm.isEmpty ? null : searchTerm,
+      fields: _fields,
       startIndex: startIndex,
       limit: limit,
     );
-  }
-
-  /// The raw-`/Items` twin of [_items]. `nameStartsWith` is used (not
-  /// `…OrGreater`) so scrolling stays within the letter instead of bleeding
-  /// into the rest of the alphabet.
-  Future<JellyfinQueryResult<JellyfinItem>> _rawItems(
-    String includeItemType, {
-    required int startIndex,
-    required int? limit,
-    required List<String> sortBy,
-    required bool descending,
-    required List<String> filters,
-    required String? startLetter,
-    required String searchTerm,
-    required String? parentId,
-    required List<String> genreIds,
-    required List<int> years,
-    required String? artistIds,
-  }) async {
-    final res = await _c.request<Map<String, dynamic>>(
-      '/Items',
-      queryParameters: {
-        'userId': _c.userId,
-        'recursive': true,
-        'enableImages': true,
-        'enableUserData': true,
-        'includeItemTypes': includeItemType,
-        if (sortBy.isNotEmpty) 'sortBy': sortBy.join(','),
-        'sortOrder': descending ? 'Descending' : 'Ascending',
-        if (filters.isNotEmpty) 'filters': filters.join(','),
-        'startIndex': startIndex,
-        if (limit != null) 'limit': limit,
-        if (startLetter != null) 'nameStartsWith': startLetter,
-        if (searchTerm.isNotEmpty) 'searchTerm': searchTerm,
-        if (parentId != null) 'parentId': parentId,
-        if (genreIds.isNotEmpty) 'genreIds': genreIds.join(','),
-        if (years.isNotEmpty) 'years': years.join(','),
-        if (artistIds != null) 'artistIds': artistIds,
-        'fields': JellyfinItemsApi.musicFields.join(','),
-      },
-    );
-    return JellyfinQueryResult.fromJson(
-        res.data ?? const {}, JellyfinItem.fromJson);
   }
 
   /// The Jellyfin `filters` values for the favourite and played toggles.
@@ -478,7 +436,8 @@ class MusicRepository {
   /// A playlist's tracks, in playlist order. Each track's
   /// `raw['PlaylistItemId']` is the entry id needed to remove it.
   Future<List<JellyfinItem>> playlistTracks(String playlistId) async {
-    final res = await _c.playlists.items(playlistId: playlistId);
+    final res =
+        await _c.playlists.items(playlistId: playlistId, fields: _fields);
     return res.items;
   }
 
@@ -526,6 +485,7 @@ class MusicRepository {
       parentId: albumId,
       includeItemTypes: const [JellyfinItemKind.audio],
       sortBy: const ['ParentIndexNumber', 'IndexNumber', 'SortName'],
+      fields: _fields,
       limit: 500,
     );
     return res.items;
@@ -536,9 +496,10 @@ class MusicRepository {
       {int limit = 5}) async {
     final res = await _c.items.list(
       includeItemTypes: const [JellyfinItemKind.audio],
-      artistIds: artistId,
+      artistIds: [artistId],
       sortBy: const ['PlayCount', 'SortName'],
       descending: true,
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -546,36 +507,29 @@ class MusicRepository {
 
   /// The artist's own albums (where they're the album artist).
   Future<List<JellyfinItem>> artistAlbums(String artistId) =>
-      _artistAlbumsBy('albumArtistIds', artistId);
+      _artistAlbums(albumArtistIds: [artistId]);
 
   /// Albums the artist only *appears on* (guest spots, compilations) — i.e.
   /// they contributed tracks but aren't the album artist.
   Future<List<JellyfinItem>> artistAppearsOn(String artistId) =>
-      _artistAlbumsBy('contributingArtistIds', artistId);
+      _artistAlbums(contributingArtistIds: [artistId]);
 
-  /// Shared album query keyed by a Jellyfin artist filter param. The SDK's
-  /// `list()` only exposes `artistIds`, so the album-artist / contributing
-  /// split goes through the raw endpoint.
-  Future<List<JellyfinItem>> _artistAlbumsBy(
-      String artistParam, String artistId) async {
-    final res = await _c.request<Map<String, dynamic>>(
-      '/Items',
-      queryParameters: {
-        'userId': _c.userId,
-        'recursive': true,
-        'enableImages': true,
-        'enableUserData': true,
-        'includeItemTypes': JellyfinItemKind.musicAlbum,
-        artistParam: artistId,
-        'sortBy': 'PremiereDate,SortName',
-        'sortOrder': 'Descending',
-        'limit': 200,
-        'fields': JellyfinItemsApi.musicFields.join(','),
-      },
+  /// Shared album query behind the album-artist / appears-on split — the two
+  /// differ only in which artist role the server matches on.
+  Future<List<JellyfinItem>> _artistAlbums({
+    List<String> albumArtistIds = const [],
+    List<String> contributingArtistIds = const [],
+  }) async {
+    final res = await _c.items.list(
+      includeItemTypes: const [JellyfinItemKind.musicAlbum],
+      albumArtistIds: albumArtistIds,
+      contributingArtistIds: contributingArtistIds,
+      sortBy: const ['PremiereDate', 'SortName'],
+      descending: true,
+      fields: _fields,
+      limit: 200,
     );
-    return JellyfinQueryResult.fromJson(
-            res.data ?? const {}, JellyfinItem.fromJson)
-        .items;
+    return res.items;
   }
 
   /// Favourite tracks.
@@ -588,6 +542,7 @@ class MusicRepository {
       parentId: parentId,
       filters: const ['IsFavorite'],
       sortBy: const ['SortName'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -602,7 +557,8 @@ class MusicRepository {
   /// only, and `/Items?ids=` answers in the server's sort order, not ours.
   Future<List<JellyfinItem>> itemsByIds(List<String> ids) async {
     if (ids.isEmpty) return const [];
-    final res = await _c.items.list(ids: ids, limit: ids.length);
+    final res =
+        await _c.items.list(ids: ids, fields: _fields, limit: ids.length);
     final byId = {for (final item in res.items) item.id: item};
     return [
       for (final id in ids)
@@ -613,15 +569,25 @@ class MusicRepository {
   /// An "Instant Mix" (radio) seeded from any item — album, artist, song,
   /// playlist or genre. Returns the generated track list.
   Future<List<JellyfinItem>> instantMix(String itemId, {int limit = 200}) async {
-    final res = await _c.instantMix.fromItem(itemId: itemId, limit: limit);
+    final res = await _c.instantMix
+        .fromItem(itemId: itemId, limit: limit, fields: _fields);
     return res.items;
   }
 
   // ─── Genres ────────────────────────────────────────────────────────
 
-  /// Music genres, paged and sorted. `/MusicGenres` narrows by name, parent
-  /// and favourite only, so the track-level filters do not apply here; the
-  /// typed genre list has no sort-order parameter, hence the raw request.
+  /// Music genres, paged and sorted.
+  ///
+  /// `/Genres` scoped to the two music kinds returns the same buckets the
+  /// music-only route used to, and it is the one Jellyfin still publishes.
+  /// It narrows by name, parent and favourite only, so the track-level
+  /// filters do not apply here.
+  ///
+  /// The items come back typed `MusicGenre` when the server answered out of a
+  /// music library and `Genre` when it answered out of the whole collection —
+  /// the server picks per parent. Either id filters the same tracks, because
+  /// Jellyfin matches a genre by its cleaned name rather than by which of the
+  /// two entities the id belongs to.
   Future<JellyfinQueryResult<JellyfinItem>> genres({
     int startIndex = 0,
     int limit = 500,
@@ -634,36 +600,32 @@ class MusicRepository {
     PlayedState playedState = PlayedState.any,
     List<String> genreIds = const [],
     List<int> years = const [],
-  }) async {
+  }) {
     final letter = searchTerm.isEmpty ? startLetter : null;
-    final res = await _c.request<Map<String, dynamic>>(
-      '/MusicGenres',
-      queryParameters: {
-        'userId': _c.userId,
-        'enableImages': true,
-        'enableUserData': true,
-        'enableTotalRecordCount': true,
-        if (sortBy.isNotEmpty) 'sortBy': sortBy.join(','),
-        'sortOrder': descending ? 'Descending' : 'Ascending',
-        if (favoritesOnly) 'isFavorite': true,
-        'startIndex': startIndex,
-        'limit': limit,
-        if (letter != null) 'nameStartsWith': letter,
-        if (searchTerm.isNotEmpty) 'searchTerm': searchTerm,
-        if (parentId != null) 'parentId': parentId,
-        'fields': JellyfinItemsApi.musicFields.join(','),
-      },
+    return _c.genres.list(
+      includeItemTypes: const [
+        JellyfinItemKind.musicAlbum,
+        JellyfinItemKind.audio,
+      ],
+      parentId: parentId,
+      sortBy: sortBy,
+      descending: descending,
+      isFavorite: favoritesOnly ? true : null,
+      nameStartsWith: letter,
+      searchTerm: searchTerm.isEmpty ? null : searchTerm,
+      fields: _fields,
+      startIndex: startIndex,
+      limit: limit,
     );
-    return JellyfinQueryResult.fromJson(
-        res.data ?? const {}, JellyfinItem.fromJson);
   }
 
   /// Albums tagged with a genre.
   Future<List<JellyfinItem>> genreAlbums(String genreId) async {
     final res = await _c.items.list(
       includeItemTypes: const [JellyfinItemKind.musicAlbum],
-      genreIds: genreId,
+      genreIds: [genreId],
       sortBy: const ['SortName'],
+      fields: _fields,
       limit: 300,
     );
     return res.items;
@@ -674,8 +636,9 @@ class MusicRepository {
       {int limit = 200}) async {
     final res = await _c.items.list(
       includeItemTypes: const [JellyfinItemKind.musicArtist],
-      genreIds: genreId,
+      genreIds: [genreId],
       sortBy: const ['SortName'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -686,8 +649,9 @@ class MusicRepository {
       {int limit = 200}) async {
     final res = await _c.items.list(
       includeItemTypes: const [JellyfinItemKind.audio],
-      genreIds: genreId,
+      genreIds: [genreId],
       sortBy: const ['SortName'],
+      fields: _fields,
       limit: limit,
     );
     return res.items;
@@ -704,6 +668,7 @@ class MusicRepository {
         JellyfinItemKind.musicAlbum,
         JellyfinItemKind.musicArtist,
       ],
+      fields: _fields,
       limit: limit,
     );
     return res.items;

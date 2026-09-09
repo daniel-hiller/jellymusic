@@ -246,7 +246,7 @@ List<ItemAction> _actionsFor(
               showDeletePlaylistDialog(context, ref, playlistId: item.id),
         ),
       ],
-    JellyfinItemKind.musicGenre => [play(), radio()],
+    JellyfinItemKind.musicGenre || JellyfinItemKind.genre => [play(), radio()],
     // Tracks, and anything else a tile hands us that plays as audio.
     _ => [
         playNext(),
@@ -283,7 +283,9 @@ Future<List<JellyfinItem>> _tracksOf(WidgetRef ref, JellyfinItem item) {
   return switch (item.type) {
     JellyfinItemKind.musicAlbum => repo.albumTracks(item.id),
     JellyfinItemKind.playlist => repo.playlistTracks(item.id),
-    JellyfinItemKind.musicGenre => repo.genreTracks(item.id),
+    JellyfinItemKind.musicGenre ||
+    JellyfinItemKind.genre =>
+      repo.genreTracks(item.id),
     JellyfinItemKind.musicArtist => repo.artistTopTracks(item.id, limit: 200),
     _ => Future.value([item]),
   };
