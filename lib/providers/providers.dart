@@ -7,6 +7,7 @@ import '../data/jellyfin/auth_repository.dart';
 import '../data/jellyfin/resilient_secure_storage.dart';
 import '../data/jellyfin/jellyfin_service.dart';
 import '../data/jellyfin/music_repository.dart';
+import '../data/models/lyrics_candidate.dart';
 import '../data/models/server_session.dart';
 import '../features/library/library_query.dart';
 
@@ -433,6 +434,13 @@ class AlbumDetail {
 final lyricsProvider =
     FutureProvider.autoDispose.family<JellyfinLyrics?, String>((ref, itemId) {
   return ref.watch(musicRepositoryProvider).lyrics(itemId);
+});
+
+/// What the server's lyric providers offer for a track. Only read when the
+/// user opens the picker, so a track without lyrics costs nothing extra.
+final lyricsSearchProvider = FutureProvider.autoDispose
+    .family<List<LyricsCandidate>, String>((ref, itemId) {
+  return ref.watch(musicRepositoryProvider).searchLyrics(itemId);
 });
 
 // ─── Favourite (per item, reactive) ──────────────────────────────────

@@ -5,6 +5,15 @@ All notable changes to JellyMusic, newest first. This project follows
 
 ## v1.3.0 — 2026-09-09
 
+**Added**
+- **Fetch song lyrics from the server's lyric providers.** A track without
+  lyrics now offers a search instead of an empty pane; the results say which
+  provider found them, for which artist and album, how long that recording is
+  and whether the text is timed, so a wrong match is visible before it is
+  saved. Lyrics already attached can be replaced or removed from the same
+  pane. All of it needs a lyrics plugin configured on the server — without one
+  the search simply finds nothing and says so.
+
 **Changed**
 - **JellyMusic now speaks Jellyfin 12.** The server's 12.0 release drops the
   legacy `/emby/` and `/mediabrowser/` addresses, disables the deprecated

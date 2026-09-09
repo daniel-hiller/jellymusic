@@ -512,6 +512,78 @@ abstract class AppLocalizations {
   /// **'Kein Songtext vorhanden'**
   String get lyricsNone;
 
+  /// No description provided for @lyricsSearchOnline.
+  ///
+  /// In de, this message translates to:
+  /// **'Online suchen'**
+  String get lyricsSearchOnline;
+
+  /// No description provided for @lyricsPickTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Songtext auswählen'**
+  String get lyricsPickTitle;
+
+  /// No description provided for @lyricsNoResults.
+  ///
+  /// In de, this message translates to:
+  /// **'Nichts gefunden. Die Suche braucht ein Songtext-Plugin auf dem Server.'**
+  String get lyricsNoResults;
+
+  /// No description provided for @lyricsSearchFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Die Suche ist fehlgeschlagen'**
+  String get lyricsSearchFailed;
+
+  /// No description provided for @lyricsSynced.
+  ///
+  /// In de, this message translates to:
+  /// **'Synchron'**
+  String get lyricsSynced;
+
+  /// No description provided for @lyricsPlain.
+  ///
+  /// In de, this message translates to:
+  /// **'Einfach'**
+  String get lyricsPlain;
+
+  /// No description provided for @lyricsSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'Songtext gespeichert'**
+  String get lyricsSaved;
+
+  /// No description provided for @lyricsSaveFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Songtext konnte nicht gespeichert werden'**
+  String get lyricsSaveFailed;
+
+  /// No description provided for @lyricsRemove.
+  ///
+  /// In de, this message translates to:
+  /// **'Songtext entfernen'**
+  String get lyricsRemove;
+
+  /// No description provided for @lyricsRemoved.
+  ///
+  /// In de, this message translates to:
+  /// **'Songtext entfernt'**
+  String get lyricsRemoved;
+
+  /// No description provided for @lyricsRemoveFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Songtext konnte nicht entfernt werden'**
+  String get lyricsRemoveFailed;
+
+  /// No description provided for @lyricsReplace.
+  ///
+  /// In de, this message translates to:
+  /// **'Songtext ersetzen'**
+  String get lyricsReplace;
+
   /// No description provided for @sleepTimer.
   ///
   /// In de, this message translates to:
