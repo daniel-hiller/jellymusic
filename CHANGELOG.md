@@ -20,6 +20,10 @@ All notable changes to JellyMusic, newest first. This project follows
   typed endpoints. The music-only genre route they used is gone from Jellyfin
   12; the general one answers the same buckets. Servers older than 12 are
   unaffected by any of this.
+- **Android's minimum version is now 7.0 (API 24).** The secure store that
+  holds the server URL and access token dropped the older encryption path that
+  carried API 21-23. Flutter's own minimum is already there, so no supported
+  device loses the app.
 
 **Fixed**
 - **Long, frozen launch on iOS and iPadOS.** Four things were in the way:

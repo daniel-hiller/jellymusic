@@ -117,8 +117,8 @@ Future<_Services> _boot() async {
     JustAudioMediaKit.ensureInitialized();
   }
 
-  // flutter_secure_storage 10 encrypts on Android by default; the old
-  // `encryptedSharedPreferences` option was removed. Wrapped so a locked/absent
+  // flutter_secure_storage encrypts on Android by default; the old
+  // `encryptedSharedPreferences` option is gone. Wrapped so a locked/absent
   // OS keyring (common on Linux desktops that don't auto-unlock it) falls back
   // to shared_preferences instead of crashing at launch.
   final storage = ResilientSecureStorage(const FlutterSecureStorage());
