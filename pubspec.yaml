@@ -32,7 +32,7 @@ dependencies:
   audio_session: ^0.2.4
 
   # --- Artwork & images ---
-  cached_network_image: ^3.4.1
+  cached_network_image: ^4.0.0
   # Cover accent colours come from lib/core/util/dominant_color.dart —
   # palette_generator decoded full-size art and quantised on the UI isolate.
 
@@ -49,7 +49,7 @@ dependencies:
   # Pinned, not a caret range: flutter_localizations from the SDK depends on
   # this exact version, so anything else fails to resolve. It moves when
   # Flutter moves.
-  intl: 0.20.2
+  intl: 0.20.3
   flutter_localizations:
     sdk: flutter
   google_fonts: ^8.2.1
