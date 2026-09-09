@@ -7,6 +7,7 @@ import '../../core/audio/audio_player_handler.dart';
 import 'jellyfin_service.dart';
 import 'music_repository.dart';
 import 'sessions_repository.dart';
+import 'syncplay_controller.dart';
 
 /// Makes this app a cast *target*: other Jellyfin clients can send it playback
 /// commands, the way this app drives them via [SessionsRepository].
@@ -21,15 +22,21 @@ class CastReceiver {
     required MusicRepository music,
     required SessionsRepository sessions,
     required AudioPlayerHandler handler,
+    SyncPlayController? syncPlay,
   })  : _service = service,
         _music = music,
         _sessions = sessions,
-        _handler = handler;
+        _handler = handler,
+        _syncPlay = syncPlay;
 
   final JellyfinService _service;
   final MusicRepository _music;
   final SessionsRepository _sessions;
   final AudioPlayerHandler _handler;
+
+  /// SyncPlay rides the same socket, so its frames are forwarded rather than
+  /// opening a second connection for them.
+  final SyncPlayController? _syncPlay;
 
   StreamSubscription<JellyfinNotification>? _sub;
   Timer? _retry;
@@ -51,6 +58,8 @@ class CastReceiver {
 
   Future<void> stop() async {
     _running = false;
+    // Group membership belongs to the session this socket authenticated with.
+    _syncPlay?.reset();
     _retry?.cancel();
     _retry = null;
     await _sub?.cancel();
@@ -104,6 +113,9 @@ class CastReceiver {
         if (data is Map) await _playstate(Map<String, dynamic>.from(data));
       case 'GeneralCommand':
         if (data is Map) await _general(Map<String, dynamic>.from(data));
+      case 'SyncPlayCommand':
+      case 'SyncPlayGroupUpdate':
+        await _syncPlay?.handleFrame(frame);
     }
   }
 

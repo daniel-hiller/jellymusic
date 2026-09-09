@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/util/item_x.dart';
 import '../data/jellyfin/cast_receiver.dart';
 import '../data/jellyfin/sessions_repository.dart';
+import 'syncplay_providers.dart';
 import 'providers.dart';
 
 /// Casting: hand playback to another Jellyfin client and drive it from here.
@@ -53,6 +54,8 @@ final castReceiverProvider = Provider<CastReceiver>((ref) {
     music: ref.watch(musicRepositoryProvider),
     sessions: ref.watch(sessionsRepositoryProvider),
     handler: ref.watch(audioHandlerProvider),
+    // SyncPlay's frames arrive on this same socket.
+    syncPlay: ref.watch(syncPlayControllerProvider),
   );
 
   void sync() {

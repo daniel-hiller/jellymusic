@@ -584,6 +584,66 @@ abstract class AppLocalizations {
   /// **'Songtext ersetzen'**
   String get lyricsReplace;
 
+  /// No description provided for @syncPlayTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Gemeinsam hören'**
+  String get syncPlayTitle;
+
+  /// No description provided for @syncPlayNewGroup.
+  ///
+  /// In de, this message translates to:
+  /// **'Neue Gruppe starten'**
+  String get syncPlayNewGroup;
+
+  /// No description provided for @syncPlayNameHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Gruppenname'**
+  String get syncPlayNameHint;
+
+  /// No description provided for @syncPlayNone.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Gruppen. Starte eine, dann können andere beitreten.'**
+  String get syncPlayNone;
+
+  /// No description provided for @syncPlayLeave.
+  ///
+  /// In de, this message translates to:
+  /// **'Gruppe verlassen'**
+  String get syncPlayLeave;
+
+  /// No description provided for @syncPlayJoined.
+  ///
+  /// In de, this message translates to:
+  /// **'In {name}'**
+  String syncPlayJoined(Object name);
+
+  /// No description provided for @syncPlayWaiting.
+  ///
+  /// In de, this message translates to:
+  /// **'Warte auf die anderen …'**
+  String get syncPlayWaiting;
+
+  /// No description provided for @syncPlayMembers.
+  ///
+  /// In de, this message translates to:
+  /// **'{count} hören mit'**
+  String syncPlayMembers(Object count);
+
+  /// No description provided for @syncPlayFailed.
+  ///
+  /// In de, this message translates to:
+  /// **'SyncPlay ist nicht verfügbar: {error}'**
+  String syncPlayFailed(Object error);
+
+  /// No description provided for @syncPlayUnsupported.
+  ///
+  /// In de, this message translates to:
+  /// **'Auf diesem Server ist SyncPlay abgeschaltet.'**
+  String get syncPlayUnsupported;
+
   /// No description provided for @sleepTimer.
   ///
   /// In de, this message translates to:
