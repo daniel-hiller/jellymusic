@@ -688,6 +688,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get similarArtists => 'Ähnliche Künstler';
 
   @override
+  String get collectionIncludedIn => 'Enthalten in';
+
+  @override
+  String get collectionEmpty => 'Diese Sammlung ist leer';
+
+  @override
   String get similarAlbums => 'Ähnliche Alben';
 
   @override

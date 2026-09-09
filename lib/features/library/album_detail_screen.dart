@@ -26,6 +26,7 @@ class AlbumDetailScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final detail = ref.watch(albumDetailProvider(albumId));
     final similar = ref.watch(similarAlbumsProvider(albumId));
+    final collections = ref.watch(itemCollectionsProvider(albumId));
     final service = ref.watch(jellyfinServiceProvider);
     final controller = ref.watch(playerControllerProvider);
 
@@ -102,6 +103,25 @@ class AlbumDetailScreen extends ConsumerWidget {
                     itemBuilder: (context, i) => tile(disc.start + i),
                   ),
                 ],
+              // Collections are curated on the server and most libraries have
+              // none, so the row appears only where there is something in it.
+              // Servers older than Jellyfin 12 have no such endpoint at all.
+              ...collections.maybeWhen(
+                data: (items) => items.isEmpty
+                    ? const <Widget>[]
+                    : [
+                        DetailSectionHeader(l.collectionIncludedIn),
+                        SliverToBoxAdapter(
+                          child: AlbumShelf(
+                            items: items,
+                            horizontalPadding: 14,
+                            onOpen: (item) =>
+                                context.go('/library/collection/${item.id}'),
+                          ),
+                        ),
+                      ],
+                orElse: () => const <Widget>[],
+              ),
               // Related albums need server-side metadata; without it the answer
               // is empty and the shelf, heading included, stays away.
               ...similar.maybeWhen(

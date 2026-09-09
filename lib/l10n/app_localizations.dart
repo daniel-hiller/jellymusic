@@ -1364,6 +1364,18 @@ abstract class AppLocalizations {
   /// **'Ähnliche Künstler'**
   String get similarArtists;
 
+  /// No description provided for @collectionIncludedIn.
+  ///
+  /// In de, this message translates to:
+  /// **'Enthalten in'**
+  String get collectionIncludedIn;
+
+  /// No description provided for @collectionEmpty.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Sammlung ist leer'**
+  String get collectionEmpty;
+
   /// No description provided for @similarAlbums.
   ///
   /// In de, this message translates to:

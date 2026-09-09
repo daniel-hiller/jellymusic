@@ -6,6 +6,9 @@ All notable changes to JellyMusic, newest first. This project follows
 ## v1.3.0 — 2026-09-09
 
 **Added**
+- **"Included in" on an album page.** Collections the album belongs to, opening
+  a page of what each one gathers. Jellyfin 12 added the endpoint behind it;
+  older servers have none, and libraries that use no collections see no row.
 - **Fetch song lyrics from the server's lyric providers.** A track without
   lyrics now offers a search instead of an empty pane; the results say which
   provider found them, for which artist and album, how long that recording is

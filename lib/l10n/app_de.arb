@@ -230,6 +230,8 @@
   "discNumber": "CD {number}",
   "@discNumber": { "placeholders": { "number": {} } },
   "similarArtists": "Ähnliche Künstler",
+  "collectionIncludedIn": "Enthalten in",
+  "collectionEmpty": "Diese Sammlung ist leer",
   "similarAlbums": "Ähnliche Alben",
   "genreArtists": "Künstler",
   "genreTracks": "Titel",

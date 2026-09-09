@@ -6,6 +6,7 @@ import '../../features/auth/login_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/library/album_detail_screen.dart';
 import '../../features/library/artist_detail_screen.dart';
+import '../../features/library/collection_detail_screen.dart';
 import '../../features/library/genre_detail_screen.dart';
 import '../../features/library/library_screen.dart';
 import '../../features/library/playlist_add_songs_screen.dart';
@@ -141,6 +142,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                                 playlistId: s.pathParameters['id']!)),
                       ),
                     ],
+                  ),
+                  GoRoute(
+                    path: 'collection/:id',
+                    builder: (_, s) => SwipeBack(
+                        child: CollectionDetailScreen(
+                            collectionId: s.pathParameters['id']!)),
                   ),
                   GoRoute(
                     path: 'genre/:id',
