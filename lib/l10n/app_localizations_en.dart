@@ -687,6 +687,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get similarArtists => 'Similar artists';
 
   @override
+  String get collectionIncludedIn => 'Included in';
+
+  @override
+  String get collectionEmpty => 'This collection is empty';
+
+  @override
   String get similarAlbums => 'Similar albums';
 
   @override

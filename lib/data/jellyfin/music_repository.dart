@@ -549,6 +549,29 @@ class MusicRepository {
     return res.items;
   }
 
+  /// Collections (box sets) an item belongs to. New in Jellyfin 12; older
+  /// servers have no such endpoint and answer with nothing, which reads the
+  /// same as an item that is in no collection.
+  Future<List<JellyfinItem>> collectionsContaining(String itemId) async {
+    try {
+      final res = await _c.library.collections(itemId: itemId, fields: _fields);
+      return res.items;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// The items gathered in a collection, in the server's order.
+  Future<List<JellyfinItem>> collectionItems(String collectionId) async {
+    final res = await _c.items.list(
+      parentId: collectionId,
+      sortBy: const ['PremiereDate', 'SortName'],
+      fields: _fields,
+      limit: 500,
+    );
+    return res.items;
+  }
+
   /// A single item (album/artist/track) by id.
   Future<JellyfinItem?> itemById(String id) => _c.items.byId(id);
 

@@ -219,6 +219,8 @@
   "discNumber": "Disc {number}",
   "@discNumber": { "placeholders": { "number": {} } },
   "similarArtists": "Similar artists",
+  "collectionIncludedIn": "Included in",
+  "collectionEmpty": "This collection is empty",
   "similarAlbums": "Similar albums",
   "genreArtists": "Artists",
   "genreTracks": "Tracks",

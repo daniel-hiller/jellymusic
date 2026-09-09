@@ -377,6 +377,21 @@ final similarAlbumsProvider =
   return ref.watch(musicRepositoryProvider).similarAlbums(albumId);
 });
 
+/// Collections an item sits in — the "Included in" row. Empty on servers older
+/// than Jellyfin 12, which have no such endpoint.
+final itemCollectionsProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, itemId) {
+  ref.watch(_sessionUserId);
+  return ref.watch(musicRepositoryProvider).collectionsContaining(itemId);
+});
+
+/// What a collection gathers.
+final collectionItemsProvider =
+    FutureProvider.family<List<JellyfinItem>, String>((ref, collectionId) {
+  ref.watch(_sessionUserId);
+  return ref.watch(musicRepositoryProvider).collectionItems(collectionId);
+});
+
 /// An artist (or any item) by id — replaces the old hack of pulling the
 /// artist name out of the album-detail provider.
 final artistByIdProvider =
