@@ -14,7 +14,7 @@ dependencies:
   dart_jellyfin: ^0.2.0
 
   # --- State management ---
-  flutter_riverpod: ^3.4.2
+  flutter_riverpod: ^3.4.3
 
   # --- Navigation ---
   go_router: ^17.3.0
@@ -45,11 +45,11 @@ dependencies:
   collection: ^1.19.0
   dio_cache_interceptor: ^4.0.0
   path_provider: ^2.1.6
-  dio: ^5.10.0
-  intl: 0.20.2
+  dio: ^5.11.1
+  intl: 0.20.3
   flutter_localizations:
     sdk: flutter
-  google_fonts: ^8.2.0
+  google_fonts: ^8.2.1
   flutter_svg: ^2.0.10+1        # crisp brand mark in the app chrome
   url_launcher: ^6.3.1          # open the GitHub repo / release pages
   http_cache_hive_store: ^5.1.1
@@ -62,7 +62,7 @@ dev_dependencies:
   # App-icon generation. `image` is used by tool/gen_icons.dart to composite
   # the transparent brand mark onto the Nocturne background.
   flutter_launcher_icons: ^0.14.4
-  image: ^4.3.0
+  image: ^4.9.2
   flutter_native_splash: ^2.4.8
 
 # Generates the per-platform launcher icons from the composed sources.
