@@ -3,6 +3,24 @@
 All notable changes to JellyMusic, newest first. This project follows
 [Semantic Versioning](https://semver.org).
 
+## v1.3.0 — 2026-09-09
+
+**Changed**
+- **JellyMusic now speaks Jellyfin 12.** The server's 12.0 release drops the
+  legacy `/emby/` and `/mediabrowser/` addresses, disables the deprecated
+  sign-in mechanisms and signs streaming URLs under a new parameter name; the
+  client library was updated to match, so playback, artwork and login work
+  against a 12.0 server again.
+- **Browsing asks the server for the fields it displays.** They used to arrive
+  by default. Without them a playlist showed no track count, an artist page no
+  biography or genres, and a track that has no cover of its own could not fall
+  back to its album's.
+- **The genre list, the A–Z rail, the decade filter and an artist's
+  album/appears-on split** moved off hand-built requests onto the library's
+  typed endpoints. The music-only genre route they used is gone from Jellyfin
+  12; the general one answers the same buckets. Servers older than 12 are
+  unaffected by any of this.
+
 ## v1.2.0 — 2026-07-27
 
 **Added**

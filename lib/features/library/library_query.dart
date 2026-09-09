@@ -134,8 +134,8 @@ abstract final class SortOptions {
         SortOption(l.sortDateAdded, 'DateCreated'),
       ];
 
-  /// `/MusicGenres` answers from the genre index, which only knows the name —
-  /// there is nothing else to order genres by.
+  /// The genre index only knows the name — there is nothing else to order
+  /// genres by.
   static List<SortOption> genres(AppLocalizations l) => [
         SortOption(l.sortName, 'SortName'),
       ];
